@@ -66,10 +66,10 @@ library
         Common.IxVector
         Common.IO
         Common.Template
-        Data.Deque
-        Data.Heap
-        Data.Stack
-        Data.Queue
+        Data.MutableDeque
+        Data.MutableHeap
+        Data.MutableStack
+        Data.MutableQueue
 
     -- Modules included in this library but not exported.
     -- other-modules:
