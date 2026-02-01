@@ -24,8 +24,6 @@ mdNew !n = do
   mdMask <- newMutVar (sz - 1)
   return $ MutableDeque vect h t mdMask
 {-# INLINE mdNew #-}
-{-# SPECIALIZE mdNew :: UM.Unbox a => Int -> ST s (MutableDeque (ST s) a) #-}
-{-# SPECIALIZE mdNew :: UM.Unbox a => Int -> IO (MutableDeque IO a) #-}
 
 mdGrow :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m ()
 mdGrow MutableDeque{..} = do

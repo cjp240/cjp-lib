@@ -20,8 +20,6 @@ mhNew !cap = do
   size <- newMutVar 0
   return $ MutableHeap vect size
 {-# INLINE mhNew #-}
-{-# SPECIALIZE mhNew :: (UM.Unbox p, UM.Unbox a) => Int -> ST s (MutableHeap (ST s) p a) #-}
-{-# SPECIALIZE mhNew :: (UM.Unbox p, UM.Unbox a) => Int -> IO (MutableHeap IO p a) #-}
 
 mhPush :: (PrimMonad m, UM.Unbox p, Ord p, UM.Unbox a) => MutableHeap m p a -> p -> a -> m ()
 mhPush MutableHeap{..} !p !a = do

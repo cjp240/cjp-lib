@@ -66,6 +66,7 @@ library
         Common.IxVector
         Common.IO
         Common.Template
+        Data.BIT
         Data.MutableDeque
         Data.MutableHeap
         Data.MutableStack

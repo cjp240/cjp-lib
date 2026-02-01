@@ -19,8 +19,6 @@ mqNew !sz = do
   t <- newMutVar 0
   return $ MutableQueue vect h t
 {-# INLINE mqNew #-}
-{-# SPECIALIZE mqNew :: UM.Unbox a => Int -> ST s (MutableQueue (ST s) a) #-}
-{-# SPECIALIZE mqNew :: UM.Unbox a => Int -> IO (MutableQueue IO a) #-}
 
 mqPop :: (PrimMonad m, UM.Unbox a) => MutableQueue m a -> m (Maybe a)
 mqPop MutableQueue{..} = do

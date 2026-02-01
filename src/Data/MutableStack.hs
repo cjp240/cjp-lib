@@ -17,8 +17,6 @@ msNew !sz = do
   t <- newMutVar 0
   return $ MutableStack vect t
 {-# INLINE msNew #-}
-{-# SPECIALIZE msNew :: UM.Unbox a => Int -> ST s (MutableStack (ST s) a) #-}
-{-# SPECIALIZE msNew :: UM.Unbox a => Int -> IO (MutableStack IO a) #-}
 
 msPop :: (PrimMonad m, UM.Unbox a) => MutableStack m a -> m (Maybe a)
 msPop MutableStack{..} = do
