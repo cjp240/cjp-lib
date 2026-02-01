@@ -17,108 +17,106 @@ data IxVect i a = IxVect
     vectIV :: !(U.Vector a)
   }
 
-newMIV :: (PrimMonad m, UM.Unbox a, Ix i) => (i, i) -> a -> m (MIxVect m i a)
-newMIV !bnds !val = do
+mivNew :: (PrimMonad m, UM.Unbox a, Ix i) => (i, i) -> a -> m (MIxVect m i a)
+mivNew !bnds !val = do
   !vect <- UM.replicate (rangeSize bnds) val
   return $ MIxVect bnds vect
-{-# INLINE newMIV #-}
-{-# SPECIALIZE newMIV :: (UM.Unbox a, Ix i) => (i, i) -> a -> ST s (MIxVect (ST s) i a) #-}
-{-# SPECIALIZE newMIV :: (UM.Unbox a, Ix i) => (i, i) -> a -> IO (MIxVect IO i a) #-}
+{-# INLINE mivNew #-}
 
-newMIV_ :: (PrimMonad m, UM.Unbox a, Ix i) => (i, i) -> m (MIxVect m i a)
-newMIV_ !bnds = do
+mivNew_ :: (PrimMonad m, UM.Unbox a, Ix i) => (i, i) -> m (MIxVect m i a)
+mivNew_ !bnds = do
   !vect <- UM.new (rangeSize bnds)
   return $ MIxVect bnds vect
-{-# INLINE newMIV_ #-}
-{-# SPECIALIZE newMIV_ :: (UM.Unbox a, Ix i) => (i, i) -> ST s (MIxVect (ST s) i a) #-}
-{-# SPECIALIZE newMIV_ :: (UM.Unbox a, Ix i) => (i, i) -> IO (MIxVect IO i a) #-}
+{-# INLINE mivNew_ #-}
 
-fromListIV :: U.Unbox a => (i, i) -> [a] -> IxVect i a
-fromListIV !bnds !xs = IxVect bnds $ U.fromList xs
-{-# INLINE fromListIV #-}
+ivFromList :: U.Unbox a => (i, i) -> [a] -> IxVect i a
+ivFromList !bnds !xs = IxVect bnds $ U.fromList xs
+{-# INLINE ivFromList #-}
 
-fromVectIV :: (i, i) -> U.Vector a -> IxVect i a
-fromVectIV !bnds !v = IxVect bnds v
-{-# INLINE fromVectIV #-}
+ivFromVect :: (i, i) -> U.Vector a -> IxVect i a
+ivFromVect !bnds !v = IxVect bnds v
+{-# INLINE ivFromVect #-}
 
-setMIV :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> a -> m ()
-setMIV MIxVect{..} !val = UM.set vectMIV val
-{-# INLINE setMIV #-}
+mivSet :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> a -> m ()
+mivSet MIxVect{..} !val = UM.set vectMIV val
+{-# INLINE mivSet #-}
+{-# SPECIALIZE mivSet :: UM.Unbox a => MIxVect (ST s) i a -> a -> ST s () #-}
+{-# SPECIALIZE mivSet :: UM.Unbox a => MIxVect IO i a -> a -> IO () #-}
 
-readMIV :: (PrimMonad m, UM.Unbox a, Ix i) => MIxVect m i a -> i -> m a
-readMIV MIxVect{..} !idx = UM.unsafeRead vectMIV (index bndsMIV idx)
-{-# INLINE readMIV #-}
-{-# SPECIALIZE readMIV :: (UM.Unbox a, Ix i) => MIxVect (ST s) i a -> i -> ST s a #-}
-{-# SPECIALIZE readMIV :: (UM.Unbox a, Ix i) => MIxVect IO i a -> i -> IO a #-}
+mivRead :: (PrimMonad m, UM.Unbox a, Ix i) => MIxVect m i a -> i -> m a
+mivRead MIxVect{..} !idx = UM.unsafeRead vectMIV (index bndsMIV idx)
+{-# INLINE mivRead #-}
+{-# SPECIALIZE mivRead :: (UM.Unbox a, Ix i) => MIxVect (ST s) i a -> i -> ST s a #-}
+{-# SPECIALIZE mivRead :: (UM.Unbox a, Ix i) => MIxVect IO i a -> i -> IO a #-}
 
-writeMIV :: (PrimMonad m, UM.Unbox a, Ix i) => MIxVect m i a -> i -> a -> m ()
-writeMIV MIxVect{..} !idx !val = UM.unsafeWrite vectMIV (index bndsMIV idx) val
-{-# INLINE writeMIV #-}
-{-# SPECIALIZE writeMIV :: (UM.Unbox a, Ix i) => MIxVect (ST s) i a -> i -> a -> ST s () #-}
-{-# SPECIALIZE writeMIV :: (UM.Unbox a, Ix i) => MIxVect IO i a -> i -> a -> IO () #-}
+mivWrite :: (PrimMonad m, UM.Unbox a, Ix i) => MIxVect m i a -> i -> a -> m ()
+mivWrite MIxVect{..} !idx !val = UM.unsafeWrite vectMIV (index bndsMIV idx) val
+{-# INLINE mivWrite #-}
+{-# SPECIALIZE mivWrite :: (UM.Unbox a, Ix i) => MIxVect (ST s) i a -> i -> a -> ST s () #-}
+{-# SPECIALIZE mivWrite :: (UM.Unbox a, Ix i) => MIxVect IO i a -> i -> a -> IO () #-}
 
-modifyMIV :: (PrimMonad m, UM.Unbox a, Ix i) => MIxVect m i a -> (a -> a) -> i -> m ()
-modifyMIV MIxVect{..} !f !idx = UM.unsafeModify vectMIV f (index bndsMIV idx)
-{-# INLINE modifyMIV #-}
-{-# SPECIALIZE modifyMIV :: (UM.Unbox a, Ix i) => MIxVect (ST s) i a -> (a -> a) -> i -> ST s () #-}
-{-# SPECIALIZE modifyMIV :: (UM.Unbox a, Ix i) => MIxVect IO i a -> (a -> a) -> i -> IO () #-}
+mivModify :: (PrimMonad m, UM.Unbox a, Ix i) => MIxVect m i a -> (a -> a) -> i -> m ()
+mivModify MIxVect{..} !f !idx = UM.unsafeModify vectMIV f (index bndsMIV idx)
+{-# INLINE mivModify #-}
+{-# SPECIALIZE mivModify :: (UM.Unbox a, Ix i) => MIxVect (ST s) i a -> (a -> a) -> i -> ST s () #-}
+{-# SPECIALIZE mivModify :: (UM.Unbox a, Ix i) => MIxVect IO i a -> (a -> a) -> i -> IO () #-}
 
-unsafeCopyMIV :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> MIxVect m i a -> m ()
-unsafeCopyMIV !v !w = UM.unsafeCopy (vectMIV v) (vectMIV w)
-{-# INLINE unsafeCopyMIV #-}
-{-# SPECIALIZE unsafeCopyMIV :: UM.Unbox a => MIxVect (ST s) i a -> MIxVect (ST s) i a -> ST s () #-}
-{-# SPECIALIZE unsafeCopyMIV :: UM.Unbox a => MIxVect IO i a -> MIxVect IO i a -> IO () #-}
+mivUnsafeCopy :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> MIxVect m i a -> m ()
+mivUnsafeCopy !v !w = UM.unsafeCopy (vectMIV v) (vectMIV w)
+{-# INLINE mivUnsafeCopy #-}
+{-# SPECIALIZE mivUnsafeCopy :: UM.Unbox a => MIxVect (ST s) i a -> MIxVect (ST s) i a -> ST s () #-}
+{-# SPECIALIZE mivUnsafeCopy :: UM.Unbox a => MIxVect IO i a -> MIxVect IO i a -> IO () #-}
 
-unsafeCopyIV :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> IxVect i a -> m ()
-unsafeCopyIV !v !w = U.unsafeCopy (vectMIV v) (vectIV w)
-{-# INLINE unsafeCopyIV #-}
-{-# SPECIALIZE unsafeCopyIV :: UM.Unbox a => MIxVect (ST s) i a -> IxVect i a -> ST s () #-}
-{-# SPECIALIZE unsafeCopyIV :: UM.Unbox a => MIxVect IO i a -> IxVect i a -> IO () #-}
+ivUnsafeCopy :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> IxVect i a -> m ()
+ivUnsafeCopy !v !w = U.unsafeCopy (vectMIV v) (vectIV w)
+{-# INLINE ivUnsafeCopy #-}
+{-# SPECIALIZE ivUnsafeCopy :: UM.Unbox a => MIxVect (ST s) i a -> IxVect i a -> ST s () #-}
+{-# SPECIALIZE ivUnsafeCopy :: UM.Unbox a => MIxVect IO i a -> IxVect i a -> IO () #-}
 
-indexIV :: (U.Unbox a, Ix i) => IxVect i a -> i -> a
-indexIV IxVect{..} !idx = U.unsafeIndex vectIV (index bndsIV idx)
-{-# INLINE indexIV #-}
+ivIndex :: (U.Unbox a, Ix i) => IxVect i a -> i -> a
+ivIndex IxVect{..} !idx = U.unsafeIndex vectIV (index bndsIV idx)
+{-# INLINE ivIndex #-}
 
-freezeIV :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> m (IxVect i a)
-freezeIV MIxVect{..} = IxVect bndsMIV <$> U.freeze vectMIV
-{-# INLINE freezeIV #-}
-{-# SPECIALIZE freezeIV :: (UM.Unbox a) => MIxVect (ST s) i a -> ST s (IxVect i a) #-}
-{-# SPECIALIZE freezeIV :: (UM.Unbox a) => MIxVect IO i a -> IO (IxVect i a) #-}
+ivFreeze :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> m (IxVect i a)
+ivFreeze MIxVect{..} = IxVect bndsMIV <$> U.freeze vectMIV
+{-# INLINE ivFreeze #-}
+{-# SPECIALIZE ivFreeze :: (UM.Unbox a) => MIxVect (ST s) i a -> ST s (IxVect i a) #-}
+{-# SPECIALIZE ivFreeze :: (UM.Unbox a) => MIxVect IO i a -> IO (IxVect i a) #-}
 
-unsafeFreezeIV :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> m (IxVect i a)
-unsafeFreezeIV MIxVect{..} = IxVect bndsMIV <$> U.unsafeFreeze vectMIV
-{-# INLINE unsafeFreezeIV #-}
-{-# SPECIALIZE unsafeFreezeIV :: (UM.Unbox a) => MIxVect (ST s) i a -> ST s (IxVect i a) #-}
-{-# SPECIALIZE unsafeFreezeIV :: (UM.Unbox a) => MIxVect IO i a -> IO (IxVect i a) #-}
+ivUnsafeFreeze :: (PrimMonad m, UM.Unbox a) => MIxVect m i a -> m (IxVect i a)
+ivUnsafeFreeze MIxVect{..} = IxVect bndsMIV <$> U.unsafeFreeze vectMIV
+{-# INLINE ivUnsafeFreeze #-}
+{-# SPECIALIZE ivUnsafeFreeze :: (UM.Unbox a) => MIxVect (ST s) i a -> ST s (IxVect i a) #-}
+{-# SPECIALIZE ivUnsafeFreeze :: (UM.Unbox a) => MIxVect IO i a -> IO (IxVect i a) #-}
 
-thawIV :: (PrimMonad m, UM.Unbox a) => IxVect i a -> m (MIxVect m i a)
-thawIV IxVect{..} = MIxVect bndsIV <$> U.thaw vectIV
-{-# INLINE thawIV #-}
-{-# SPECIALIZE thawIV :: (UM.Unbox a) => IxVect i a -> ST s (MIxVect (ST s) i a) #-}
-{-# SPECIALIZE thawIV :: (UM.Unbox a) => IxVect i a -> IO (MIxVect IO i a) #-}
+ivThaw :: (PrimMonad m, UM.Unbox a) => IxVect i a -> m (MIxVect m i a)
+ivThaw IxVect{..} = MIxVect bndsIV <$> U.thaw vectIV
+{-# INLINE ivThaw #-}
+{-# SPECIALIZE ivThaw :: (UM.Unbox a) => IxVect i a -> ST s (MIxVect (ST s) i a) #-}
+{-# SPECIALIZE ivThaw :: (UM.Unbox a) => IxVect i a -> IO (MIxVect IO i a) #-}
 
-unsafeThawIV :: (PrimMonad m, UM.Unbox a) => IxVect i a -> m (MIxVect m i a)
-unsafeThawIV IxVect{..} = MIxVect bndsIV <$> U.unsafeThaw vectIV
-{-# INLINE unsafeThawIV #-}
-{-# SPECIALIZE unsafeThawIV :: (UM.Unbox a) => IxVect i a -> ST s (MIxVect (ST s) i a) #-}
-{-# SPECIALIZE unsafeThawIV :: (UM.Unbox a) => IxVect i a -> IO (MIxVect IO i a) #-}
+ivUnsafeThaw :: (PrimMonad m, UM.Unbox a) => IxVect i a -> m (MIxVect m i a)
+ivUnsafeThaw IxVect{..} = MIxVect bndsIV <$> U.unsafeThaw vectIV
+{-# INLINE ivUnsafeThaw #-}
+{-# SPECIALIZE ivUnsafeThaw :: (UM.Unbox a) => IxVect i a -> ST s (MIxVect (ST s) i a) #-}
+{-# SPECIALIZE ivUnsafeThaw :: (UM.Unbox a) => IxVect i a -> IO (MIxVect IO i a) #-}
 
-mapIV :: (U.Unbox a, U.Unbox b) => (a -> b) -> IxVect i a -> IxVect i b
-mapIV !f IxVect{..} = IxVect bndsIV (U.map f vectIV)
-{-# INLINE mapIV #-}
+ivMap :: (U.Unbox a, U.Unbox b) => (a -> b) -> IxVect i a -> IxVect i b
+ivMap !f IxVect{..} = IxVect bndsIV (U.map f vectIV)
+{-# INLINE ivMap #-}
 
-ixmapIV :: (Ix i, Ix j, U.Unbox a) => (i, i) -> (i -> j) -> IxVect j a -> IxVect i a
-ixmapIV !bnds' !f !v = runST $ do
-  !mv <- newMIV_ bnds'
+ivIxMap :: (Ix i, Ix j, U.Unbox a) => (i, i) -> (i -> j) -> IxVect j a -> IxVect i a
+ivIxMap !bnds' !f !v = runST $ do
+  !mv <- mivNew_ bnds'
   forM_ (range bnds') $ \ !i -> do
-    writeMIV mv i $! indexIV v (f i)
-  unsafeFreezeIV mv
-{-# INLINE ixmapIV #-}
+    mivWrite mv i $! ivIndex v (f i)
+  ivUnsafeFreeze mv
+{-# INLINE ivIxMap #-}
 
-imapIV :: (Ix i, U.Unbox a, U.Unbox b) => (i -> a -> b) -> IxVect i a -> IxVect i b
-imapIV !f v@IxVect{..} = runST $ do
-  !mv <- newMIV_ bndsIV
+ivIMap :: (Ix i, U.Unbox a, U.Unbox b) => (i -> a -> b) -> IxVect i a -> IxVect i b
+ivIMap !f v@IxVect{..} = runST $ do
+  !mv <- mivNew_ bndsIV
   forM_ (range bndsIV) $ \ !i -> do
-    writeMIV mv i $! f i (indexIV v i)
-  unsafeFreezeIV mv
-{-# INLINE imapIV #-}
+    mivWrite mv i $! f i (ivIndex v i)
+  ivUnsafeFreeze mv
+{-# INLINE ivIMap #-}

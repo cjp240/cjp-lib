@@ -118,8 +118,8 @@ getGrid :: Int -> Int -> IO (IxVect (Int, Int) Char)
 getGrid h w = do
   !rows <- replicateM (fromIntegral h) BS.getLine
   let !allBytes = BS.concat rows
-      !vect = U.unfoldrN (fromIntegral h * fromIntegral w) BS.uncons allBytes
-  return $ IxVect ((0, 0), (fromIntegral h - 1, fromIntegral w - 1)) vect
+      !vect = U.unfoldrN (h * w) BS.uncons allBytes
+  return $ IxVect ((0, 0), (h - 1, w - 1)) vect
 {-# INLINE getGrid #-}
 
 --------------------------------------------------------------------------------
