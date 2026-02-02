@@ -60,6 +60,7 @@ library
     -- Modules exported by the library.
     exposed-modules:
         Algorithm.BinSearch
+        Algorithm.Compression
         Algorithm.Sort
         Algorithm.Mo
         Common.Debug
@@ -67,11 +68,19 @@ library
         Common.IO
         Common.Template
         Data.BIT
+        Data.BitSet
         Data.MutableDeque
         Data.MutableHeap
         Data.MutableStack
         Data.MutableQueue
+        Data.SegTree.SegTree
+        Data.SegTree.Beats
+        Data.SegTree.Dynamic
+        Data.SegTree.Lazy
+        Data.SegTree.Persistent
         Data.SparseTable
+        Data.WaveletMatrix
+        Graph.CSR
 
     -- Modules included in this library but not exported.
     -- other-modules:
