@@ -82,6 +82,7 @@ library
         Data.UF
         Data.UFP
         Data.WaveletMatrix
+        Graph.BipartiteMatching
         Graph.CSR
         Graph.TopSort
         Graph.MaxFlow

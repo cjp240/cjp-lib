@@ -43,7 +43,6 @@ mfGetFlows :: PrimMonad m => Int -> U.Vector (Int, Int, Int) -> Int -> Int -> m 
 mfGetFlows !n !edges !s !t = do
   mfg@MFGraph{..} <- mfBuild n edges
   !f <- mfSolve mfg s t
-  let !m = U.length edges
 
   used <- U.iforM edges $ \ !i (_, _, !cap) -> do
     let !j = mfEdgeMapping U.! i
