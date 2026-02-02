@@ -79,6 +79,8 @@ library
         Data.SegTree.Lazy
         Data.SegTree.Persistent
         Data.SparseTable
+        Data.UF
+        Data.UFP
         Data.WaveletMatrix
         Graph.CSR
 
