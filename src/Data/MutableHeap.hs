@@ -28,7 +28,7 @@ mhPush MutableHeap{..} !p !a = do
   !v' <- 
     if sz + 1 < UM.length v then return v
     else do
-      !newV <- UM.unsafeGrow v (sz + 1)
+      !newV <- UM.unsafeGrow v sz
       writeMutVar mhVect newV
       return newV
 

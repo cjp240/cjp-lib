@@ -84,6 +84,8 @@ library
         Data.WaveletMatrix
         Graph.CSR
         Graph.TopSort
+        Graph.MaxFlow
+        Graph.MinCostFlow
 
     -- Modules included in this library but not exported.
     -- other-modules:
