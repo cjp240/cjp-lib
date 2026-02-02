@@ -83,6 +83,7 @@ library
         Data.UFP
         Data.WaveletMatrix
         Graph.CSR
+        Graph.TopSort
 
     -- Modules included in this library but not exported.
     -- other-modules:
