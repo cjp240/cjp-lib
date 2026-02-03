@@ -83,10 +83,14 @@ library
         Data.UFP
         Data.WaveletMatrix
         Graph.BipartiteMatching
+        Graph.BellmanFord
+        Graph.BFS
         Graph.CSR
+        Graph.Dijkstra
         Graph.TopSort
         Graph.MaxFlow
         Graph.MinCostFlow
+        Graph.WarshallFloyd
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -379,3 +383,9 @@ test-suite cjp-lib-test
         , wide-word
         , witherable
         , xhtml
+
+executable cjp-bundle
+    main-is:          Bundler.hs
+    hs-source-dirs:   app
+    build-depends:    base, directory, filepath, containers, text
+    default-language: Haskell2010

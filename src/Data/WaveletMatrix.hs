@@ -106,7 +106,7 @@ wmAccess wm@WaveletMatrix{..} !i =
 
 -- [l, r) 内の v の個数
 wmFreq :: WaveletMatrix -> Int -> Int -> Int -> Int
-wmFreq wm@WaveletMatrix{..} !v !l !r = 
+wmFreq wm@WaveletMatrix{..} !l !r !v = 
   let (!finalL, !finalR) = U.foldl' transition (l, r) $ U.generate wmHeight ((wmHeight - 1) - )
   in finalR - finalL
   where
@@ -122,7 +122,7 @@ wmFreq wm@WaveletMatrix{..} !v !l !r =
 
 -- v の k 番目 (0-indexed) の index
 wmSelect :: WaveletMatrix -> Int -> Int -> Maybe Int
-wmSelect wm@WaveletMatrix{..} !v !k = 
+wmSelect wm@WaveletMatrix{..} !k !v = 
   let !finalL = U.foldl' transition 0 $ U.generate wmHeight ((wmHeight - 1) - )
       !targetPos = finalL + k
   in
