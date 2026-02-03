@@ -62,11 +62,14 @@ library
         Algorithm.BinSearch
         Algorithm.Compression
         Algorithm.Sort
+        Algorithm.TwoSAT
         Algorithm.Mo
+
         Common.Debug
         Common.IxVector
         Common.IO
         Common.Template
+
         Data.BIT
         Data.BitSet
         Data.MutableDeque
@@ -82,11 +85,13 @@ library
         Data.UF
         Data.UFP
         Data.WaveletMatrix
+
         Graph.BipartiteMatching
         Graph.BellmanFord
         Graph.BFS
         Graph.CSR
         Graph.Dijkstra
+        Graph.SCC
         Graph.TopSort
         Graph.MaxFlow
         Graph.MinCostFlow

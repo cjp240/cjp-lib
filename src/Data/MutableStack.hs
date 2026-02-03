@@ -52,3 +52,20 @@ msNull MutableStack{..} = (== 0) <$> readMutVar msTail
 {-# INLINE msNull #-}
 {-# SPECIALIZE msNull :: UM.Unbox a => MutableStack (ST s) a -> ST s Bool #-}
 {-# SPECIALIZE msNull :: UM.Unbox a => MutableStack IO a -> IO Bool #-}
+
+msTop :: (PrimMonad m, UM.Unbox a) => MutableStack m a -> m (Maybe a)
+msTop MutableStack{..} = do
+  !t <- readMutVar msTail
+  if t == 0 then return Nothing
+  else do
+    !v <- readMutVar msVect
+    Just <$> UM.unsafeRead v (t - 1)
+{-# INLINE msTop #-}
+{-# SPECIALIZE msTop :: UM.Unbox a => MutableStack (ST s) a -> ST s (Maybe a) #-}
+{-# SPECIALIZE msTop :: UM.Unbox a => MutableStack IO a -> IO (Maybe a) #-}
+
+msClear :: PrimMonad m => MutableStack m a -> m ()
+msClear MutableStack{..} = writeMutVar msTail 0
+{-# INLINE msClear #-}
+{-# SPECIALIZE msClear :: MutableStack (ST s) a -> ST s () #-}
+{-# SPECIALIZE msClear :: MutableStack IO a -> IO () #-}

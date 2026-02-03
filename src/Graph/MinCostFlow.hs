@@ -199,7 +199,7 @@ mcfDijkstra MCFGraph{..} !s !t !inf = do
   UM.set mcfDist inf
   UM.set mcfVisit False
   UM.unsafeWrite mcfDist s 0
-  writeMutVar (mhSize mcfHeap) 0
+  mhClear mcfHeap
   mhPush mcfHeap 0 s
   !pot <- U.unsafeFreeze mcfH
 

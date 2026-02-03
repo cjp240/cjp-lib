@@ -25,11 +25,12 @@ mqPop MutableQueue{..} = do
   !v <- readMutVar mqVect
   !h <- readMutVar mqHead
   !t <- readMutVar mqTail
-  if h == t then return Nothing
-  else do
-    !top <- UM.unsafeRead v h
-    writeMutVar mqHead $! h + 1
-    return $ Just top
+  if h == t 
+    then return Nothing
+    else do
+      !top <- UM.unsafeRead v h
+      writeMutVar mqHead $! h + 1
+      return $ Just top
 {-# INLINE mqPop #-}
 {-# SPECIALIZE mqPop :: UM.Unbox a => MutableQueue (ST s) a -> ST s (Maybe a) #-}
 {-# SPECIALIZE mqPop :: UM.Unbox a => MutableQueue IO a -> IO (Maybe a) #-}
@@ -39,11 +40,12 @@ mqPush MutableQueue{..} !x = do
   !v <- readMutVar mqVect
   !t <- readMutVar mqTail
   !v' <-
-    if t < UM.length v then return v
-    else do 
-      !newV <- UM.unsafeGrow v t
-      writeMutVar mqVect newV
-      return newV
+    if t < UM.length v 
+      then return v
+      else do 
+        !newV <- UM.unsafeGrow v t
+        writeMutVar mqVect newV
+        return newV
   UM.unsafeWrite v' t x
   writeMutVar mqTail $! t + 1
 {-# INLINE mqPush #-}
@@ -55,3 +57,23 @@ mqNull MutableQueue{..} = (==) <$> readMutVar mqHead <*> readMutVar mqTail
 {-# INLINE mqNull #-}
 {-# SPECIALIZE mqNull :: MutableQueue (ST s) a -> ST s Bool #-}
 {-# SPECIALIZE mqNull :: MutableQueue IO a -> IO Bool #-}
+
+mqTop :: (PrimMonad m, UM.Unbox a) => MutableQueue m a -> m (Maybe a)
+mqTop MutableQueue{..} = do
+  !v <- readMutVar mqVect
+  !h <- readMutVar mqHead
+  !t <- readMutVar mqTail
+  if h == t 
+    then return Nothing
+    else Just <$> UM.unsafeRead v h
+{-# INLINE mqTop #-}
+{-# SPECIALIZE mqTop :: UM.Unbox a => MutableQueue (ST s) a -> ST s (Maybe a) #-}
+{-# SPECIALIZE mqTop :: UM.Unbox a => MutableQueue IO a -> IO (Maybe a) #-}
+
+mqClear :: PrimMonad m => MutableQueue m a -> m ()
+mqClear MutableQueue{..} = do
+  writeMutVar mqHead 0
+  writeMutVar mqTail 0
+{-# INLINE mqClear #-}
+{-# SPECIALIZE mqClear :: MutableQueue (ST s) a -> ST s () #-}
+{-# SPECIALIZE mqClear :: MutableQueue IO a -> IO () #-}

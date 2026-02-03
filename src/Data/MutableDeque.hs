@@ -85,14 +85,15 @@ mdPopFront :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
 mdPopFront MutableDeque{..} = do
   !h <- readMutVar mdHead
   !t <- readMutVar mdTail
-  if h == t then return Nothing
-  else do
-    !v <- readMutVar mdVect
-    !m <- readMutVar mdMask
-    !top <- UM.unsafeRead v h
-    let !newH = (h + 1) .&. m
-    writeMutVar mdHead newH
-    return $ Just top
+  if h == t 
+    then return Nothing
+    else do
+      !v <- readMutVar mdVect
+      !m <- readMutVar mdMask
+      !top <- UM.unsafeRead v h
+      let !newH = (h + 1) .&. m
+      writeMutVar mdHead newH
+      return $ Just top
 {-# INLINE mdPopFront #-}
 {-# SPECIALIZE mdPopFront :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
 {-# SPECIALIZE mdPopFront :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
@@ -101,14 +102,15 @@ mdPopBack :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
 mdPopBack MutableDeque{..} = do
   !h <- readMutVar mdHead
   !t <- readMutVar mdTail
-  if h == t then return Nothing
-  else do
-    !v <- readMutVar mdVect
-    !m <- readMutVar mdMask
-    let !newT = (t - 1) .&. m
-    !bot <- UM.unsafeRead v newT
-    writeMutVar mdTail newT
-    return $ Just bot
+  if h == t 
+    then return Nothing
+    else do
+      !v <- readMutVar mdVect
+      !m <- readMutVar mdMask
+      let !newT = (t - 1) .&. m
+      !bot <- UM.unsafeRead v newT
+      writeMutVar mdTail newT
+      return $ Just bot
 {-# INLINE mdPopBack #-}
 {-# SPECIALIZE mdPopBack :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
 {-# SPECIALIZE mdPopBack :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
@@ -118,3 +120,39 @@ mdNull MutableDeque{..} = (==) <$> readMutVar mdHead <*> readMutVar mdTail
 {-# INLINE mdNull #-}
 {-# SPECIALIZE mdNull :: UM.Unbox a => MutableDeque (ST s) a -> ST s Bool #-}
 {-# SPECIALIZE mdNull :: UM.Unbox a => MutableDeque IO a -> IO Bool #-}
+
+mdTop :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
+mdTop MutableDeque{..} = do
+  !h <- readMutVar mdHead
+  !t <- readMutVar mdTail
+  if h == t 
+    then return Nothing
+    else do
+      !v <- readMutVar mdVect
+      Just <$> UM.unsafeRead v h
+{-# INLINE mdTop #-}
+{-# SPECIALIZE mdTop :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
+{-# SPECIALIZE mdTop :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
+
+mdBot :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
+mdBot MutableDeque{..} = do
+  !h <- readMutVar mdHead
+  !t <- readMutVar mdTail
+  if h == t 
+    then return Nothing
+    else do
+      !v <- readMutVar mdVect
+      !m <- readMutVar mdMask
+      let !newT = (t - 1) .&. m
+      Just <$> UM.unsafeRead v newT
+{-# INLINE mdBot #-}
+{-# SPECIALIZE mdBot :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
+{-# SPECIALIZE mdBot :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
+
+mdClear :: PrimMonad m => MutableDeque m a -> m ()
+mdClear MutableDeque{..} = do
+  writeMutVar mdHead 0
+  writeMutVar mdTail 0
+{-# INLINE mdClear #-}
+{-# SPECIALIZE mdClear :: MutableDeque (ST s) a -> ST s () #-}
+{-# SPECIALIZE mdClear :: MutableDeque IO a -> IO () #-}
