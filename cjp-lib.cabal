@@ -99,6 +99,16 @@ library
 
         Math.IntMod
         Math.IntMod.Combinatorics
+        Math.Matrix
+        Math.SemiRing
+        Math.SemiRing.Affine
+        Math.SemiRing.AndOr
+        Math.SemiRing.MaxMin
+        Math.SemiRing.MaxPlus
+        Math.SemiRing.MinMax
+        Math.SemiRing.MinPlus
+        Math.SemiRing.OrAnd
+        Math.SemiRing.XorAnd
 
     -- Modules included in this library but not exported.
     -- other-modules:

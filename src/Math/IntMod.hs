@@ -14,6 +14,7 @@ import Data.Word
 import GHC.TypeLits
 
 import Common.IO
+import Math.SemiRing
 
 type role IntMod nominal
 newtype IntMod (n :: Nat) = IntMod {unIntModInternal :: Int} deriving (Eq, Ord)
@@ -189,3 +190,20 @@ instance KnownNat n => G.Vector U.Vector (IntMod n) where
   {-# INLINE basicUnsafeSlice #-}
   {-# INLINE basicUnsafeIndexM #-}
   {-# INLINE basicUnsafeCopy #-}
+
+instance KnownNat n => SemiRing (IntMod n) where
+  rZero = 0
+  rOne = 1
+  (<+>) = (+)
+  (<.>) = (*)
+  {-# INLINE rZero #-}
+  {-# INLINE rOne #-}
+  {-# INLINE (<+>) #-}
+  {-# INLINE (<.>) #-}
+  {-# SPECIALIZE instance SemiRing IntMod998 #-}
+  {-# SPECIALIZE instance SemiRing IntMod107 #-}
+instance KnownNat n => Ring (IntMod n) where
+  rNegate = negate
+  {-# INLINE rNegate #-}
+  {-# SPECIALIZE instance Ring IntMod998 #-}
+  {-# SPECIALIZE instance Ring IntMod107 #-}
