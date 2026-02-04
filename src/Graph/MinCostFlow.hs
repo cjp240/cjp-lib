@@ -4,7 +4,6 @@ module Graph.MinCostFlow where
 import Control.Monad
 import Control.Monad.ST
 import Control.Monad.Primitive
-import Data.Primitive.MutVar
 import Data.Vector.Unboxed qualified as U
 import Data.Vector.Unboxed.Mutable qualified as UM
 

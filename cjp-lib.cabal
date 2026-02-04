@@ -97,6 +97,9 @@ library
         Graph.MinCostFlow
         Graph.WarshallFloyd
 
+        Math.IntMod
+        Math.IntMod.Combinatorics
+
     -- Modules included in this library but not exported.
     -- other-modules:
 
