@@ -154,7 +154,7 @@ tonelliShanks !a =
       let !s = trailingZeros $ p - 1
           !q = shiftR (p - 1) s
 
-          findZ !z_
+          findZ (!z_ :: Int)
             | modPow zn (shiftR (p - 1) 1) == fromIntegral (p - 1) = zn
             | otherwise = findZ $ z_ + 1
             where
