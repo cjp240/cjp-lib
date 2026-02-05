@@ -100,6 +100,8 @@ library
         Math.Convolution.NTT
         Math.FPS
         Math.FPS.Extra
+        Math.FPS.Sparse
+        Math.FPS.Sparse.Extra
         Math.IntMod
         Math.IntMod.Combinatorics
         Math.Matrix
