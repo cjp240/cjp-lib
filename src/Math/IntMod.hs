@@ -131,6 +131,56 @@ modPow !a !n
 {-# SPECIALIZE modPow :: IntMod107 -> Int -> IntMod107 #-}
 {-# SPECIALIZE modPow :: IntMod107 -> Integer -> IntMod107 #-}
 
+tonelliShanks :: forall n. KnownNat n => IntMod n -> Maybe (IntMod n)
+tonelliShanks 0 = Just 0
+tonelliShanks 1 = Just 1
+tonelliShanks !a = 
+  let !p = fromIntegral $ modVal @n :: Integer
+      !expo = shiftR (p - 1) 1
+      !check = modPow a expo
+  in 
+    if check == 1
+     then if p .&. 3 == 3 
+      then Just $ modPow a (shiftR (p + 1) 2)
+      else Just $ solve p a
+     else Nothing
+  where
+    trailingZeros :: Integer -> Int
+    trailingZeros !n | n == 0 = 0
+                     | testBit n 0 = 0
+                     | otherwise = 1 + trailingZeros (shiftR n 1)
+
+    solve !p !a_ = 
+      let !s = trailingZeros $ p - 1
+          !q = shiftR (p - 1) s
+
+          findZ !z_
+            | modPow zn (shiftR (p - 1) 1) == fromIntegral (p - 1) = zn
+            | otherwise = findZ $ z_ + 1
+            where
+              !zn = fromIntegral z_ :: IntMod n
+          !z = findZ 2
+
+          !c = modPow z q
+          !r = modPow a_ (shiftR (q + 1) 1)
+          !t = modPow a_ q
+          !m = s
+
+          go !curM !curC !curR !curT
+            | curT == 1 = curR
+            | otherwise = 
+                let findI !i_ !tt
+                      | tt == 1 = i_
+                      | otherwise = findI (i_ + 1) (tt * tt)
+                    !i = findI 1 (curT * curT)
+                    !expB = shiftL (1 :: Integer) (curM - i - 1)
+                    !b = modPow curC expB
+                    !nxtC = b * b
+                    !nxtT = curT * nxtC
+                    !nxtR = curR * b
+                in go i nxtC nxtR nxtT
+      in go m c r t
+
 type IntMod998 = IntMod 998244353
 type IntMod107 = IntMod 1000000007
 type IntMod754 = IntMod 754974721

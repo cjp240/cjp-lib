@@ -97,6 +97,9 @@ library
         Graph.MinCostFlow
         Graph.WarshallFloyd
 
+        Math.Convolution.NTT
+        Math.FPS
+        Math.FPS.Extra
         Math.IntMod
         Math.IntMod.Combinatorics
         Math.Matrix
