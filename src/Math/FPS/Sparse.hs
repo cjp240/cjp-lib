@@ -29,9 +29,9 @@ sfpsFromList = sfpsFromVect . U.fromList
 {-# INLINE sfpsFromList #-}
 
 instance KnownNat n => Num (SparseFPS n) where
-  (+) = sfpsAdd
-  !f - !g = f + sfpsNeg g
-  (*) = sfpsMul
+  (+) = _sfpsAdd
+  !f - !g = f + _sfpsNeg g
+  (*) = _sfpsMul
   fromInteger !x = 
     let !r = fromInteger x
     in
@@ -45,8 +45,8 @@ instance KnownNat n => Num (SparseFPS n) where
   {-# INLINE (*) #-}
   {-# INLINE fromInteger #-}
 
-sfpsAdd :: KnownNat n => SparseFPS n -> SparseFPS n -> SparseFPS n
-sfpsAdd f@(SparseFPS !fv) g@(SparseFPS !gv)
+_sfpsAdd :: KnownNat n => SparseFPS n -> SparseFPS n -> SparseFPS n
+_sfpsAdd f@(SparseFPS !fv) g@(SparseFPS !gv)
   | U.null fv = g
   | U.null gv = f
   | otherwise = SparseFPS $ runST $ do
@@ -80,13 +80,14 @@ sfpsAdd f@(SparseFPS !fv) g@(SparseFPS !gv)
                         go (ixF + 1) (ixG + 1) (ixR + 1)
       !sz <- go 0 0 0
       U.unsafeFreeze $ UM.unsafeTake sz res
+{-# INLINABLE _sfpsAdd #-}
 
-sfpsNeg :: KnownNat n => SparseFPS n -> SparseFPS n
-sfpsNeg SparseFPS{..} = SparseFPS $ U.map (\(!d, !v) -> (d, -v)) sfpsVec
-{-# INLINE sfpsNeg #-}
+_sfpsNeg :: KnownNat n => SparseFPS n -> SparseFPS n
+_sfpsNeg SparseFPS{..} = SparseFPS $ U.map (\(!d, !v) -> (d, -v)) sfpsVec
+{-# INLINE _sfpsNeg #-}
 
-sfpsMul :: KnownNat n => SparseFPS n -> SparseFPS n -> SparseFPS n
-sfpsMul (SparseFPS !fv) (SparseFPS !gv)
+_sfpsMul :: KnownNat n => SparseFPS n -> SparseFPS n -> SparseFPS n
+_sfpsMul (SparseFPS !fv) (SparseFPS !gv)
   | U.null fv || U.null gv = 0
   | otherwise = 
       let !lenF = U.length fv
@@ -121,9 +122,19 @@ sfpsMul (SparseFPS !fv) (SparseFPS !gv)
             U.unsafeFreeze $ UM.unsafeTake sz res
           
       in SparseFPS multRes
+{-# INLINABLE _sfpsMul #-}
 
-sfpsToDenceAt :: KnownNat n => Int -> SparseFPS n -> FPS n
-sfpsToDenceAt !limit SparseFPS{..}
+sfpsMulAt :: KnownNat n => Int -> SparseFPS n -> SparseFPS n -> SparseFPS n
+sfpsMulAt !limit (SparseFPS !fv) (SparseFPS !gv) = 
+  let !f' = SparseFPS $ U.takeWhile ((< limit) . fst) fv
+      !g' = SparseFPS $ U.takeWhile ((< limit) . fst) gv
+      SparseFPS !res = _sfpsMul f' g'
+      !res' = U.takeWhile ((< limit) . fst) res
+  in SparseFPS res'
+{-# INLINABLE sfpsMulAt #-}
+
+sfpsToDenseAt :: KnownNat n => Int -> SparseFPS n -> FPS n
+sfpsToDenseAt !limit SparseFPS{..}
   | U.null sfpsVec = 0
   | limit <= 0 = 0
   | otherwise = fpsShrink $ FPS $ runST $ do
@@ -131,19 +142,19 @@ sfpsToDenceAt !limit SparseFPS{..}
       U.forM_ sfpsVec $ \(!d, !v) -> do
         when (d < limit) do UM.unsafeWrite res d v
       U.unsafeFreeze res
-{-# INLINE sfpsToDenceAt #-}
+{-# INLINE sfpsToDenseAt #-}
 
-sfpsToDence :: KnownNat n => SparseFPS n -> FPS n
-sfpsToDence f@SparseFPS{..}
+sfpsToDense :: KnownNat n => SparseFPS n -> FPS n
+sfpsToDense f@SparseFPS{..}
   | U.null sfpsVec = 0
   | otherwise = 
       let (!d, _) = U.last sfpsVec
-      in sfpsToDenceAt (d + 1) f
-{-# INLINE sfpsToDence #-}
+      in sfpsToDenseAt (d + 1) f
+{-# INLINE sfpsToDense #-}
 
-sfpsFromDence :: KnownNat n => FPS n -> SparseFPS n
-sfpsFromDence FPS{..} = SparseFPS $ U.filter ((/= 0) . snd) $ U.indexed fpsVec
-{-# INLINE sfpsFromDence #-}
+sfpsFromDense :: KnownNat n => FPS n -> SparseFPS n
+sfpsFromDense FPS{..} = SparseFPS $ U.filter ((/= 0) . snd) $ U.indexed fpsVec
+{-# INLINE sfpsFromDense #-}
 
 sfpsCoeffAt :: KnownNat n => Int -> SparseFPS n -> IntMod n
 sfpsCoeffAt !d SparseFPS{..}
@@ -156,3 +167,9 @@ sfpsCoeffAt !d SparseFPS{..}
           then snd $ U.unsafeIndex sfpsVec idx
           else 0
 {-# INLINE sfpsCoeffAt #-}
+
+sfpsDeg :: KnownNat n => SparseFPS n -> Int
+sfpsDeg SparseFPS{..}
+  | U.null sfpsVec = -1
+  | otherwise = fst $ U.last sfpsVec
+{-# INLINE sfpsDeg #-}

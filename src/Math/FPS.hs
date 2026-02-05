@@ -20,31 +20,30 @@ type FPS469 = FPS 469762049
 fpsFromList :: KnownNat n => [Int] -> FPS n
 fpsFromList = fpsFromVect . U.fromList
 {-# INLINE fpsFromList #-}
-{-# SPECIALIZE fpsFromList :: [Int] -> FPS998 #-}
 
 fpsFromVect :: KnownNat n => U.Vector Int -> FPS n
 fpsFromVect = fpsShrink . FPS . U.map fromIntegral
 {-# INLINE fpsFromVect #-}
-{-# SPECIALIZE fpsFromVect :: U.Vector Int -> FPS998 #-}
 
 fpsFixLength :: forall n. KnownNat n => Int -> FPS n -> FPS n
 fpsFixLength !len FPS{..}
   | U.length fpsVec >= len = FPS $ U.take len fpsVec
   | otherwise = FPS $ fpsVec U.++ U.replicate (len - U.length fpsVec) 0
 {-# INLINE fpsFixLength #-}
-{-# SPECIALIZE fpsFixLength :: Int -> FPS998 -> FPS998 #-}
 
 fpsShrink :: KnownNat n => FPS n -> FPS n
 fpsShrink FPS{..} = FPS $ _nttShrink fpsVec
 {-# INLINE fpsShrink #-}
-{-# SPECIALIZE fpsShrink :: FPS998 -> FPS998 #-}
 
 fpsCoeffAt :: KnownNat n => Int -> FPS n -> IntMod n
 fpsCoeffAt !d FPS{..}
   | d >= U.length fpsVec = 0
   | otherwise = U.unsafeIndex fpsVec d
 {-# INLINE fpsCoeffAt #-}
-{-# SPECIALIZE fpsCoeffAt :: Int -> FPS998 -> IntMod998 #-}
+
+fpsDeg :: KnownNat n => FPS n -> Int
+fpsDeg FPS{..} = U.length fpsVec - 1
+{-# INLINE fpsDeg #-}
 
 instance (KnownNat n, NTTConvolvable n) => Num (FPS n) where
   f + g = fpsShrink $ FPS $ U.generate (max (U.length (fpsVec f)) (U.length (fpsVec g))) $ \ !i -> 
