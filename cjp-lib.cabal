@@ -118,6 +118,14 @@ library
         Math.SemiRing.OrAnd
         Math.SemiRing.XorAnd
 
+        String.Manacher
+        String.RollingHash
+        String.SuffixArray
+        String.Transform
+        String.Trie
+        String.Trie.AhoCorasick
+        String.ZAlgorithm
+
     -- Modules included in this library but not exported.
     -- other-modules:
 

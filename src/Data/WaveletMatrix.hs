@@ -63,16 +63,17 @@ wmBuild !maxA !as = runST $ do
       
       !finalW <- forLoopFold st (== en) succ 0 $ \ !acc !i -> do
         !val <- UM.unsafeRead currA i
-        if val .&. mask == 0 then do
-          !idx <- readSTRef p0
-          UM.unsafeWrite nxtA idx val
-          modifySTRef' p0 succ
-          return acc
-        else do
-          !idx <- readSTRef p1
-          UM.unsafeWrite nxtA idx val
-          modifySTRef' p1 succ
-          return (acc .|. bit (i - st))
+        if val .&. mask == 0 
+          then do
+            !idx <- readSTRef p0
+            UM.unsafeWrite nxtA idx val
+            modifySTRef' p0 succ
+            return acc
+          else do
+            !idx <- readSTRef p1
+            UM.unsafeWrite nxtA idx val
+            modifySTRef' p1 succ
+            return (acc .|. bit (i - st))
 
       mivWrite mBits (d, b) finalW
 
@@ -96,12 +97,13 @@ wmAccess wm@WaveletMatrix{..} !i =
     transition (!currI, !acc) !d = 
       let !isOne = _wmTestBit wm d currI
       in 
-        if isOne then 
-          let !nxtI = (wmZeros U.! d) + _wmRank1 wm d currI
-          in (nxtI, setBit acc d)
-        else 
-          let !nxtI = _wmRank0 wm d currI
-          in (nxtI, acc)
+        if isOne 
+          then 
+            let !nxtI = (wmZeros U.! d) + _wmRank1 wm d currI
+            in (nxtI, setBit acc d)
+          else 
+            let !nxtI = _wmRank0 wm d currI
+            in (nxtI, acc)
 {-# INLINE wmAccess #-}
 
 -- [l, r) 内の v の個数
@@ -114,10 +116,11 @@ wmFreq wm@WaveletMatrix{..} !l !r !v =
       let !l0 = _wmRank0 wm d curL
           !r0 = _wmRank0 wm d curR
       in
-        if testBit v d then
-          let !off = wmZeros U.! d
-          in (off + curL - l0, off + curR - r0)
-        else (l0, r0)
+        if testBit v d 
+          then
+            let !off = wmZeros U.! d
+            in (off + curL - l0, off + curR - r0)
+          else (l0, r0)
 {-# INLINE wmFreq #-}
 
 -- v の k 番目 (0-indexed) の index
@@ -126,20 +129,23 @@ wmSelect wm@WaveletMatrix{..} !k !v =
   let !finalL = U.foldl' transition 0 $ U.generate wmHeight ((wmHeight - 1) - )
       !targetPos = finalL + k
   in
-    if k >= wmFreq wm v 0 wmSize then Nothing
-    else Just $ U.foldl' backstep targetPos $ U.generate wmHeight id
+    if k >= wmFreq wm v 0 wmSize 
+      then Nothing
+      else Just $ U.foldl' backstep targetPos $ U.generate wmHeight id
   where
     transition !curL !d = 
       let !l0 = _wmRank0 wm d curL
       in
-        if testBit v d then
-          let !off = wmZeros U.! d
-          in off + curL - l0
-        else l0
+        if testBit v d 
+          then
+            let !off = wmZeros U.! d
+            in off + curL - l0
+          else l0
 
     backstep !curI !d = 
-      if testBit v d then _wmSelect1 wm d $ curI - wmZeros U.! d
-      else _wmSelect0 wm d curI
+      if testBit v d 
+        then _wmSelect1 wm d $ curI - wmZeros U.! d
+        else _wmSelect0 wm d curI
 {-# INLINE wmSelect #-}
 
 -- [l, r) で k 番目 (0-indexed) に小さい値
@@ -152,10 +158,11 @@ wmKthSmallest wm@WaveletMatrix{..} !l !r !k =
           !r0 = _wmRank0 wm d cr
           !c0 = r0 - l0
       in 
-        if ck < c0 then ((l0, r0, ck), acc)
-        else 
-          let !off = wmZeros U.! d
-          in ((off + cl - l0, off + cr - r0, ck - c0), setBit acc d)
+        if ck < c0 
+          then ((l0, r0, ck), acc)
+          else 
+            let !off = wmZeros U.! d
+            in ((off + cl - l0, off + cr - r0, ck - c0), setBit acc d)
 {-# INLINE wmKthSmallest #-}
 
 -- [l, r) で k番目 (0-indexed) に大きい値
@@ -178,10 +185,11 @@ _wmLessThanFreq wm@WaveletMatrix{..} !l !r !v =
           !r0 = _wmRank0 wm d cr
           !c0 = r0 - l0
       in
-        if testBit v d then
-          let !off = wmZeros U.! d
-          in (off + cl - l0, off + cr - r0, acc + c0)
-        else (l0, r0, acc)
+        if testBit v d 
+          then
+            let !off = wmZeros U.! d
+            in (off + cl - l0, off + cr - r0, acc + c0)
+          else (l0, r0, acc)
 {-# INLINE _wmLessThanFreq #-}
 
 -- [l, r) にある [lower, upper) の要素の和
@@ -199,10 +207,11 @@ _wmLessThanSum wm@WaveletMatrix{..} !l !r !v =
           !r0 = _wmRank0 wm d cr
           !s0 = ivIndex wmSum (d, r0) - ivIndex wmSum (d, l0)
       in
-        if testBit v d then
-          let !off = wmZeros U.! d
-          in (off + cl - l0, off + cr - r0, acc + s0)
-        else (l0, r0, acc)
+        if testBit v d 
+          then
+            let !off = wmZeros U.! d
+            in (off + cl - l0, off + cr - r0, acc + s0)
+          else (l0, r0, acc)
 {-# INLINE _wmLessThanSum #-}
 
 -- [l, r) 内の v 未満の最大値
@@ -210,8 +219,9 @@ wmLookupLT :: WaveletMatrix -> Int -> Int -> Int -> Maybe Int
 wmLookupLT !wm !l !r !v = 
   let !cnt = _wmLessThanFreq wm l r v
   in
-    if cnt == 0 then Nothing
-    else Just $ wmKthSmallest wm l r (cnt - 1)
+    if cnt == 0 
+      then Nothing
+      else Just $ wmKthSmallest wm l r (cnt - 1)
 {-# INLINE wmLookupLT #-}
 
 -- [l, r) 内の v 以下の最大値
@@ -225,8 +235,9 @@ wmLookupGT !wm !l !r !v =
   let !cntLE = _wmLessThanFreq wm l r (v + 1)
       !total = r - l
   in
-    if cntLE == total then Nothing
-    else Just $ wmKthSmallest wm l r cntLE
+    if cntLE == total 
+      then Nothing
+      else Just $ wmKthSmallest wm l r cntLE
 {-# INLINE wmLookupGT #-}
 
 -- [l, r) 内の v 以上の最小値
@@ -235,8 +246,9 @@ wmLookupGE !wm !l !r !v =
   let !cntLT = _wmLessThanFreq wm l r v
       !total = r - l
   in
-    if cntLT == total then Nothing
-    else Just $ wmKthSmallest wm l r cntLT
+    if cntLT == total 
+      then Nothing
+      else Just $ wmKthSmallest wm l r cntLT
 {-# INLINE wmLookupGE #-}
 
 -- d段目のビット列から, k (0-indexed) の 0/1 の位置を返す
@@ -271,8 +283,9 @@ _wmSelectInWord !word !k = go 0 64 k
               !mask = shiftL 1 half - 1
               !cnt = popCount (shiftR word low .&. mask)
           in
-            if target < cnt then go low half target
-            else go (low + half) (width - half) (target - cnt)
+            if target < cnt 
+              then go low half target
+              else go (low + half) (width - half) (target - cnt)
 {-# INLINE _wmSelectInWord #-}
 
 -- d 段目の [0, i) に 1 が何個あるか

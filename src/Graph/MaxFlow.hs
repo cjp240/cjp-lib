@@ -25,19 +25,20 @@ mfSolve :: PrimMonad m => MFGraph m -> Int -> Int -> m Int
 mfSolve mfg@MFGraph{..} !s !t = do
   let go !total = do
         !hasPath <- mfBFS mfg s t
-        if not hasPath then return total
-        else do
-          U.copy mfIter mfOffset
-          let loop !acc = do
-                f <- mfDFS mfg s t (maxBound :: Int)
-                if f == 0 then return acc
-                else loop $ acc + f
-          !pushed <- loop 0
-          if pushed == 0 then return total
-          else go $ total + pushed
+        if not hasPath 
+          then return total
+          else do
+            U.copy mfIter mfOffset
+            let loop !acc = do
+                  f <- mfDFS mfg s t (maxBound :: Int)
+                  if f == 0 
+                    then return acc
+                    else loop $ acc + f
+            !pushed <- loop 0
+            if pushed == 0 
+              then return total
+              else go $ total + pushed
   go 0
-{-# SPECIALIZE mfSolve :: MFGraph (ST s) -> Int -> Int -> ST s Int #-}
-{-# SPECIALIZE mfSolve :: MFGraph IO -> Int -> Int -> IO Int #-}
 
 mfGetFlows :: PrimMonad m => Int -> U.Vector (Int, Int, Int) -> Int -> Int -> m (Int, U.Vector Int)
 mfGetFlows !n !edges !s !t = do
@@ -50,9 +51,6 @@ mfGetFlows !n !edges !s !t = do
     return $ cap - cap'
   
   return (f, used)
-{-# INLINE mfGetFlows #-}
-{-# SPECIALIZE mfGetFlows :: Int -> U.Vector (Int, Int, Int) -> Int -> Int -> ST s (Int, U.Vector Int) #-}
-{-# SPECIALIZE mfGetFlows :: Int -> U.Vector (Int, Int, Int) -> Int -> Int -> IO (Int, U.Vector Int) #-}
 
 mfBuild :: PrimMonad m => Int -> U.Vector (Int, Int, Int) -> m (MFGraph m)
 mfBuild !n !edges = do
@@ -110,15 +108,17 @@ mfBFS MFGraph{..} !s !t = do
               let !u = mfEdgeTo U.! i
               !lu <- UM.unsafeRead mfLevel u
               !cap <- UM.unsafeRead mfEdgeCap i
-              if cap > 0 && lu == -1 then do
-                UM.unsafeWrite mfLevel u $! lv + 1
-                UM.unsafeWrite mfQueue acc u
-                return $! acc + 1
-              else return acc
+              if cap > 0 && lu == -1 
+                then do
+                  UM.unsafeWrite mfLevel u $! lv + 1
+                  UM.unsafeWrite mfQueue acc u
+                  return $! acc + 1
+                else return acc
             go (qh + 1) qt'
   go 0 1
   !lt <- UM.unsafeRead mfLevel t
   return $! lt /= -1
+{-# INLINABLE mfBFS #-}
 {-# SPECIALIZE mfBFS :: MFGraph (ST s) -> Int -> Int -> ST s Bool #-}
 {-# SPECIALIZE mfBFS :: MFGraph IO -> Int -> Int -> IO Bool #-}
 
@@ -138,17 +138,20 @@ mfDFS mfg@MFGraph{..} !v !t !f
                 let !u = mfEdgeTo U.! i
                 !lu <- UM.unsafeRead mfLevel u
                 !cap <- UM.unsafeRead mfEdgeCap i
-                if cap > 0 && lu == lv + 1 then do
-                  !d <- mfDFS mfg u t (min f cap)
-                  if d > 0 then do
-                    UM.unsafeWrite mfEdgeCap i (cap - d)
-                    let !rev = mfEdgeRev U.! i
-                    UM.unsafeModify mfEdgeCap (+ d) rev
-                    UM.unsafeWrite mfIter v i
-                    return d
+                if cap > 0 && lu == lv + 1 
+                  then do
+                    !d <- mfDFS mfg u t (min f cap)
+                    if d > 0 
+                      then do
+                        UM.unsafeWrite mfEdgeCap i (cap - d)
+                        let !rev = mfEdgeRev U.! i
+                        UM.unsafeModify mfEdgeCap (+ d) rev
+                        UM.unsafeWrite mfIter v i
+                        return d
+                      else go $ i + 1
                   else go $ i + 1
-                else go $ i + 1
 
       go startIx
+{-# INLINABLE mfDFS #-}
 {-# SPECIALIZE mfDFS :: MFGraph (ST s) -> Int -> Int -> Int -> ST s Int #-}
 {-# SPECIALIZE mfDFS :: MFGraph IO -> Int -> Int -> Int -> IO Int #-}

@@ -57,14 +57,16 @@ bmSolve BMGraph{..} = runST $ do
                   newFound <- forLoopFold st (== en) succ False $ \ !found !i -> do
                     let !r = bmTo U.! i
                     !nxtL <- UM.unsafeRead pairR r
-                    if nxtL == -1 then return True
-                    else do
-                      !dn <- UM.unsafeRead dist nxtL
-                      if dn == -1 then do
-                        UM.unsafeWrite dist nxtL $! dl + 1
-                        mqPush que nxtL
-                        return found
-                      else return found
+                    if nxtL == -1 
+                      then return True
+                      else do
+                        !dn <- UM.unsafeRead dist nxtL
+                        if dn == -1 
+                          then do
+                            UM.unsafeWrite dist nxtL $! dl + 1
+                            mqPush que nxtL
+                            return found
+                          else return found
 
                   go newFound
         
@@ -82,43 +84,50 @@ bmSolve BMGraph{..} = runST $ do
                   !nxtL <- UM.unsafeRead pairR r
 
                   !canStep <- 
-                    if nxtL == -1 then return True
-                    else do
-                      !dn <- UM.unsafeRead dist nxtL
-                      return (dn == dl + 1)
+                    if nxtL == -1 
+                      then return True
+                      else do
+                        !dn <- UM.unsafeRead dist nxtL
+                        return (dn == dl + 1)
 
-                  if canStep then do
-                    !res <- 
-                      if nxtL == -1 then return True
-                      else dfs nxtL
-                    if res then do
-                      UM.unsafeWrite pairL l r
-                      UM.unsafeWrite pairR r l
-                      return True
+                  if canStep 
+                    then do
+                      !res <- 
+                        if nxtL == -1 
+                          then return True
+                          else dfs nxtL
+                      if res 
+                        then do
+                          UM.unsafeWrite pairL l r
+                          UM.unsafeWrite pairR r l
+                          return True
+                        else do
+                          UM.unsafeModify ptr succ l
+                          go (i + 1)
                     else do
                       UM.unsafeModify ptr succ l
                       go (i + 1)
-                  else do
-                    UM.unsafeModify ptr succ l
-                    go (i + 1)
         
         !currPtr <- UM.unsafeRead ptr l
         go (st + currPtr)
 
   let mainLoop !acc = do
         !hasPath <- bfs
-        if not hasPath then return acc
-        else do
-          UM.set ptr 0
-          !added <- forLoopFold 0 (== bmSizeL) succ 0 $ \ !cnt !l -> do
-            !matchR <- UM.unsafeRead pairL l
-            if matchR == -1 then do
-              !res <- dfs l
-              return $ cnt + if res then 1 else 0
-            else return cnt
+        if not hasPath 
+          then return acc
+          else do
+            UM.set ptr 0
+            !added <- forLoopFold 0 (== bmSizeL) succ 0 $ \ !cnt !l -> do
+              !matchR <- UM.unsafeRead pairL l
+              if matchR == -1 
+                then do
+                  !res <- dfs l
+                  return $ cnt + if res then 1 else 0
+                else return cnt
 
-          if added == 0 then return acc
-          else mainLoop (acc + added)
+            if added == 0 
+              then return acc
+              else mainLoop (acc + added)
   
   !numPairs <- mainLoop 0
   (numPairs, ) <$> U.unsafeFreeze pairL

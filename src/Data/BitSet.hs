@@ -44,6 +44,10 @@ bsFlip BitSet{..} !i = BitSet bsNBits bsNWords $ U.modify (\v -> UM.unsafeModify
 {-# INLINE bsClear #-}
 {-# INLINE bsFlip #-}
 
+bsNot :: BitSet -> BitSet
+bsNot BitSet{..} = _bsMask $ BitSet bsNBits bsNWords (U.map complement bsWords)
+{-# INLINE bsNot #-}
+
 bsTestBit :: BitSet -> Int -> Bool
 bsTestBit BitSet{..} !i = testBit (U.unsafeIndex bsWords (unsafeShiftR i 6)) (i .&. 63)
 {-# INLINE bsTestBit #-}
@@ -68,11 +72,12 @@ _bsMask :: BitSet -> BitSet
 _bsMask bs@BitSet{..} = 
   let !remBits = bsNBits .&. 63
   in
-    if remBits == 0 then bs
-    else 
-      let !m = bit remBits - 1
-          !newWords = U.modify (\v -> UM.unsafeModify v (.&. m) (bsNWords - 1)) bsWords
-      in BitSet bsNBits bsNWords newWords
+    if remBits == 0 
+      then bs
+      else 
+        let !m = bit remBits - 1
+            !newWords = U.modify (\v -> UM.unsafeModify v (.&. m) (bsNWords - 1)) bsWords
+        in BitSet bsNBits bsNWords newWords
 {-# INLINE _bsMask #-}
 
 bsShiftL :: BitSet -> Int -> BitSet
@@ -84,14 +89,16 @@ bsShiftL bs@BitSet{..} !s
       let (!q, !r) = divMod s 64
           !rInv = 64 - r
           !newWords = U.generate bsNWords $ \ !i ->
-            if i - q >= 0 then
-              let !v = U.unsafeIndex bsWords (i - q)
-                  !low = unsafeShiftL v r
-                  !high = 
-                    if i - q - 1 >= 0 && r > 0 then unsafeShiftR (U.unsafeIndex bsWords (i - q - 1)) rInv
-                    else 0
-              in low .|. high
-            else 0
+            if i - q >= 0 
+              then
+                let !v = U.unsafeIndex bsWords (i - q)
+                    !low = unsafeShiftL v r
+                    !high = 
+                      if i - q - 1 >= 0 && r > 0 
+                        then unsafeShiftR (U.unsafeIndex bsWords (i - q - 1)) rInv
+                        else 0
+                in low .|. high
+              else 0
           !res = BitSet bsNBits bsNWords newWords
       in _bsMask res
 {-# INLINE bsShiftL #-}
@@ -105,14 +112,16 @@ bsShiftR bs@BitSet{..} !s
       let (!q, !r) = divMod s 64
           !rInv = 64 - r
           !newWords = U.generate bsNWords $ \ !i -> 
-            if i + q < bsNWords then
-              let !v = U.unsafeIndex bsWords (i + q)
-                  !high = unsafeShiftR v r
-                  !low = 
-                    if i + q + 1 < bsNWords && r > 0 then unsafeShiftL (U.unsafeIndex bsWords (i + q + 1)) rInv
-                    else 0
-              in high .|. low
-            else 0
+            if i + q < bsNWords 
+              then
+                let !v = U.unsafeIndex bsWords (i + q)
+                    !high = unsafeShiftR v r
+                    !low = 
+                      if i + q + 1 < bsNWords && r > 0 
+                        then unsafeShiftL (U.unsafeIndex bsWords (i + q + 1)) rInv
+                        else 0
+                in high .|. low
+              else 0
       in BitSet bsNBits bsNWords newWords
 {-# INLINE bsShiftR #-}
 
@@ -129,21 +138,25 @@ mbsNull MBitSet{..} = go 0
       | i == mbsNWords = return True
       | otherwise = do
           !w <- UM.unsafeRead mbsWords i
-          if w == 0 then go (i + 1)
-          else return False
+          if w == 0 
+            then go (i + 1)
+            else return False
 {-# INLINE mbsNull #-}
-{-# SPECIALIZE mbsNull :: MBitSet (ST s) -> ST s Bool #-}
-{-# SPECIALIZE mbsNull :: MBitSet IO -> IO Bool #-}
 
 mbsSet, mbsClear, mbsFlip :: PrimMonad m => MBitSet m -> Int -> m ()
-mbsSet mbs@MBitSet{..} !i = do
-  UM.unsafeModify mbsWords (.|. bit (i .&. 63)) (unsafeShiftR i 6)
-  _mbsMask mbs
+mbsSet MBitSet{..} !i = UM.unsafeModify mbsWords (.|. bit (i .&. 63)) (unsafeShiftR i 6)
 mbsClear MBitSet{..} !i = UM.unsafeModify mbsWords (.&. complement (bit (i .&. 63))) (unsafeShiftR i 6)
 mbsFlip MBitSet{..} !i = UM.unsafeModify mbsWords (xor (bit (i .&. 63))) (unsafeShiftR i 6)
 {-# INLINE mbsSet #-}
 {-# INLINE mbsClear #-}
 {-# INLINE mbsFlip #-}
+
+mbsNot :: PrimMonad m => MBitSet m -> m ()
+mbsNot mbs@MBitSet{..} = do
+  forLoop 0 (== mbsNWords) succ $ \ !i -> do
+    UM.unsafeModify mbsWords complement i
+  _mbsMask mbs
+{-# INLINE mbsNot #-}
 
 mbsTestBit :: PrimMonad m => MBitSet m -> Int -> m Bool
 mbsTestBit MBitSet{..} !i = do
@@ -158,8 +171,6 @@ _mbsBinOp op (MBitSet _ !nw !d) (MBitSet _ _ !s) = do
     !si <- UM.unsafeRead s i
     UM.unsafeModify d (`op` si) i
 {-# INLINE _mbsBinOp #-}
-{-# SPECIALIZE _mbsBinOp :: (Word64 -> Word64 -> Word64) -> MBitSet (ST s) -> MBitSet (ST s) -> ST s () #-}
-{-# SPECIALIZE _mbsBinOp :: (Word64 -> Word64 -> Word64) -> MBitSet IO -> MBitSet IO -> IO () #-}
 
 mbsXOR, mbsAND, mbsOR :: PrimMonad m => MBitSet m -> MBitSet m -> m ()
 mbsXOR = _mbsBinOp xor
@@ -186,8 +197,6 @@ mbsPopCount MBitSet{..} = do
     !w <- UM.unsafeRead mbsWords i
     return $! acc + popCount w
 {-# INLINE mbsPopCount #-}
-{-# SPECIALIZE mbsPopCount :: MBitSet (ST s) -> ST s Int #-}
-{-# SPECIALIZE mbsPopCount :: MBitSet IO -> IO Int #-}
 
 _mbsMask :: PrimMonad m => MBitSet m -> m ()
 _mbsMask MBitSet{..} = do
@@ -208,20 +217,20 @@ mbsShiftL mbs@MBitSet{..} !s
       
       forLoop (mbsNWords - 1) (< 0) pred $ \ !i -> do
         !val <- 
-          if i - q >= 0 then do
-            !v <- UM.unsafeRead mbsWords (i - q)
-            let !low = unsafeShiftL v r
-            !high <-
-              if i - q - 1 >= 0 && r > 0 then (`unsafeShiftR` rInv) <$> UM.unsafeRead mbsWords (i - q - 1)
-              else return 0
-            return $ low .|. high
-          else return 0
+          if i - q >= 0 
+            then do
+              !v <- UM.unsafeRead mbsWords (i - q)
+              let !low = unsafeShiftL v r
+              !high <-
+                if i - q - 1 >= 0 && r > 0 
+                  then (`unsafeShiftR` rInv) <$> UM.unsafeRead mbsWords (i - q - 1)
+                  else return 0
+              return $! low .|. high
+            else return 0
         UM.unsafeWrite mbsWords i val
       
       _mbsMask mbs
 {-# INLINE mbsShiftL #-}
-{-# SPECIALIZE mbsShiftL :: MBitSet (ST s) -> Int -> ST s () #-}
-{-# SPECIALIZE mbsShiftL :: MBitSet IO -> Int -> IO () #-}
 
 mbsShiftR :: PrimMonad m => MBitSet m -> Int -> m ()
 mbsShiftR mbs@MBitSet{..} !s
@@ -234,18 +243,18 @@ mbsShiftR mbs@MBitSet{..} !s
       
       forLoop 0 (== mbsNWords) succ $ \ !i -> do
         !val <-
-          if i + q < mbsNWords then do
-            !v <- UM.unsafeRead mbsWords (i + q)
-            let !high = unsafeShiftR v r
-            !low <-
-              if i + q + 1 < mbsNWords && r > 0 then (`unsafeShiftL` rInv) <$> UM.unsafeRead mbsWords (i + q + 1)
-              else return 0
-            return $ high .|. low
-          else return 0
+          if i + q < mbsNWords 
+            then do
+              !v <- UM.unsafeRead mbsWords (i + q)
+              let !high = unsafeShiftR v r
+              !low <-
+                if i + q + 1 < mbsNWords && r > 0 
+                  then (`unsafeShiftL` rInv) <$> UM.unsafeRead mbsWords (i + q + 1)
+                  else return 0
+              return $! high .|. low
+            else return 0
         UM.unsafeWrite mbsWords i val
 {-# INLINE mbsShiftR #-}
-{-# SPECIALIZE mbsShiftR :: MBitSet (ST s) -> Int -> ST s () #-}
-{-# SPECIALIZE mbsShiftR :: MBitSet IO -> Int -> IO () #-}
 
 bsFreeze, bsUnsafeFreeze :: PrimMonad m => MBitSet m -> m BitSet
 bsFreeze MBitSet{..} = BitSet mbsNBits mbsNWords <$> U.freeze mbsWords

@@ -36,9 +36,6 @@ mcfGetFlows !n !edges !s !t !fLimit = do
     !cap' <- UM.unsafeRead mcfEdgeCap j
     return $! cap - cap'
   return (totalFlow, minCost, used)
-{-# INLINE mcfGetFlows #-}
-{-# SPECIALIZE mcfGetFlows :: Int -> U.Vector (Int, Int, Int, Int) -> Int -> Int -> Int -> ST s (Int, Int, U.Vector Int) #-}
-{-# SPECIALIZE mcfGetFlows :: Int -> U.Vector (Int, Int, Int, Int) -> Int -> Int -> Int -> IO (Int, Int, U.Vector Int) #-}
 
 mcfSolve :: PrimMonad m => MCFGraph m -> Int -> Int -> Int -> m (Int, Int)
 mcfSolve mcfg@MCFGraph{..} !s !t !flowLimit = do
@@ -48,45 +45,45 @@ mcfSolve mcfg@MCFGraph{..} !s !t !flowLimit = do
         | resFlow >= flowLimit = return (resFlow, resCost)
         | otherwise = do
             !hasPath <- mcfDijkstra mcfg s t inf
-            if not hasPath then return (resFlow, resCost)
-            else do
-              !dt <- UM.unsafeRead mcfDist t
+            if not hasPath 
+              then return (resFlow, resCost)
+              else do
+                !dt <- UM.unsafeRead mcfDist t
 
-              forLoop 0 (== mcfNV) succ $ \ !i -> do
-                !di <- UM.unsafeRead mcfDist i
-                !vis <- UM.unsafeRead mcfVisit i
-                if vis then UM.unsafeModify mcfH (+ di) i
-                else UM.unsafeModify mcfH (+ dt) i
-              
-              let getMaxPush !v !f
-                    | v == s = return f
-                    | otherwise = do
-                        !pe <- UM.unsafeRead mcfPrevE v
-                        !cap <- UM.unsafeRead mcfEdgeCap pe
-                        !pv <- UM.unsafeRead mcfPrevV v
-                        getMaxPush pv (min f cap)
-              
-              !push <- getMaxPush t (flowLimit - resFlow)
+                forLoop 0 (== mcfNV) succ $ \ !i -> do
+                  !di <- UM.unsafeRead mcfDist i
+                  !vis <- UM.unsafeRead mcfVisit i
+                  if vis 
+                    then UM.unsafeModify mcfH (+ di) i
+                    else UM.unsafeModify mcfH (+ dt) i
+                
+                let getMaxPush !v !f
+                      | v == s = return f
+                      | otherwise = do
+                          !pe <- UM.unsafeRead mcfPrevE v
+                          !cap <- UM.unsafeRead mcfEdgeCap pe
+                          !pv <- UM.unsafeRead mcfPrevV v
+                          getMaxPush pv (min f cap)
+                
+                !push <- getMaxPush t (flowLimit - resFlow)
 
-              let updateG !v
-                    | v == s = return ()
-                    | otherwise = do
-                        !pe <- UM.unsafeRead mcfPrevE v
-                        let !rev = mcfEdgeRev U.! pe
-                        UM.unsafeModify mcfEdgeCap (subtract push) pe
-                        UM.unsafeModify mcfEdgeCap (+ push) rev
-                        !pv <- UM.unsafeRead mcfPrevV v
-                        updateG pv
+                let updateG !v
+                      | v == s = return ()
+                      | otherwise = do
+                          !pe <- UM.unsafeRead mcfPrevE v
+                          let !rev = mcfEdgeRev U.! pe
+                          UM.unsafeModify mcfEdgeCap (subtract push) pe
+                          UM.unsafeModify mcfEdgeCap (+ push) rev
+                          !pv <- UM.unsafeRead mcfPrevV v
+                          updateG pv
 
-              updateG t
-              !ht' <- UM.unsafeRead mcfH t
-              !hs' <- UM.unsafeRead mcfH s
-              let !unitCost = ht' - hs'
-              solve (resFlow + push) (resCost + push * unitCost)
+                updateG t
+                !ht' <- UM.unsafeRead mcfH t
+                !hs' <- UM.unsafeRead mcfH s
+                let !unitCost = ht' - hs'
+                solve (resFlow + push) (resCost + push * unitCost)
   
   solve 0 0
-{-# SPECIALIZE mcfSolve :: MCFGraph (ST s) -> Int -> Int -> Int -> ST s (Int, Int) #-}
-{-# SPECIALIZE mcfSolve :: MCFGraph IO -> Int -> Int -> Int -> IO (Int, Int) #-}
 
 mcfSlope :: PrimMonad m => MCFGraph m -> Int -> Int -> Int -> m (U.Vector (Int, Int))
 mcfSlope mcfg@MCFGraph{..} !s !t !flowLimit = do
@@ -102,49 +99,49 @@ mcfSlope mcfg@MCFGraph{..} !s !t !flowLimit = do
             loop vec' resFlow resCost ptr (len * 2)
         | otherwise = do
             hasPath <- mcfDijkstra mcfg s t inf
-            if not hasPath then return (vec, ptr)
-            else do
-              !dt <- UM.unsafeRead mcfDist t
-              
-              forLoop 0 (== mcfNV) succ $ \ !i -> do
-                !di <- UM.unsafeRead mcfDist i
-                !vis <- UM.unsafeRead mcfVisit i
-                if vis then UM.unsafeModify mcfH (+ di) i
-                else UM.unsafeModify mcfH (+ dt) i
+            if not hasPath 
+              then return (vec, ptr)
+              else do
+                !dt <- UM.unsafeRead mcfDist t
+                
+                forLoop 0 (== mcfNV) succ $ \ !i -> do
+                  !di <- UM.unsafeRead mcfDist i
+                  !vis <- UM.unsafeRead mcfVisit i
+                  if vis 
+                    then UM.unsafeModify mcfH (+ di) i
+                    else UM.unsafeModify mcfH (+ dt) i
 
-              let getMaxPush !v !f
-                    | v == s = return f
-                    | otherwise = do
-                        !pe <- UM.unsafeRead mcfPrevE v
-                        !cap <- UM.unsafeRead mcfEdgeCap pe
-                        !pv <- UM.unsafeRead mcfPrevV v
-                        getMaxPush pv (min f cap)
+                let getMaxPush !v !f
+                      | v == s = return f
+                      | otherwise = do
+                          !pe <- UM.unsafeRead mcfPrevE v
+                          !cap <- UM.unsafeRead mcfEdgeCap pe
+                          !pv <- UM.unsafeRead mcfPrevV v
+                          getMaxPush pv (min f cap)
 
-              !push <- getMaxPush t (flowLimit - resFlow)
+                !push <- getMaxPush t (flowLimit - resFlow)
 
-              let updateG !v
-                    | v == s = return ()
-                    | otherwise = do
-                        !pe <- UM.unsafeRead mcfPrevE v
-                        let !rev = mcfEdgeRev U.! pe
-                        UM.unsafeModify mcfEdgeCap (subtract push) pe
-                        UM.unsafeModify mcfEdgeCap (+ push) rev
-                        !pv <- UM.unsafeRead mcfPrevV v
-                        updateG pv
-              updateG t
+                let updateG !v
+                      | v == s = return ()
+                      | otherwise = do
+                          !pe <- UM.unsafeRead mcfPrevE v
+                          let !rev = mcfEdgeRev U.! pe
+                          UM.unsafeModify mcfEdgeCap (subtract push) pe
+                          UM.unsafeModify mcfEdgeCap (+ push) rev
+                          !pv <- UM.unsafeRead mcfPrevV v
+                          updateG pv
+                updateG t
 
-              !ht' <- UM.unsafeRead mcfH t
-              !hs' <- UM.unsafeRead mcfH s
-              let !unitCost = ht' - hs'
-                  !flow' = resFlow + push
-                  !cost' = resCost + push * unitCost
-              UM.unsafeWrite vec ptr (flow', cost')
-              loop vec flow' cost' (ptr + 1) len
+                !ht' <- UM.unsafeRead mcfH t
+                !hs' <- UM.unsafeRead mcfH s
+                let !unitCost = ht' - hs'
+                    !flow' = resFlow + push
+                    !cost' = resCost + push * unitCost
+                UM.unsafeWrite vec ptr (flow', cost')
+                loop vec flow' cost' (ptr + 1) len
 
   (!finalVec, !finalSize) <- loop resVec 0 0 1 maxPoints
   U.unsafeFreeze $ UM.unsafeTake finalSize finalVec
-{-# SPECIALIZE mcfSlope :: MCFGraph (ST s) -> Int -> Int -> Int -> ST s (U.Vector (Int, Int)) #-}
-{-# SPECIALIZE mcfSlope :: MCFGraph IO -> Int -> Int -> Int -> IO (U.Vector (Int, Int)) #-}
 
 mcfBuild :: PrimMonad m => Int -> U.Vector (Int, Int, Int, Int) -> m (MCFGraph m)
 mcfBuild !n !edges = do
@@ -209,28 +206,30 @@ mcfDijkstra MCFGraph{..} !s !t !inf = do
           Just (!d, !v) -> do
             !dv <- UM.unsafeRead mcfDist v
             let !hv = pot U.! v
-            if d > dv then go
-            else do
-              UM.unsafeWrite mcfVisit v True
-              let !st = mcfOffset U.! v
-                  !en = mcfOffset U.! (v + 1)
-              
-              forLoop st (== en) succ $ \ !i -> do
-                !cap <- UM.unsafeRead mcfEdgeCap i
-                let !u = mcfEdgeTo U.! i
-                    !cost = mcfEdgeCost U.! i
-                    !hu = pot U.! u
-                when (cap > 0) do
-                  !du <- UM.unsafeRead mcfDist u
-                  let !du' = d + cost + hv - hu
-                  when (du' < du) do
-                    UM.unsafeWrite mcfDist u du'
-                    UM.unsafeWrite mcfPrevV u v
-                    UM.unsafeWrite mcfPrevE u i
-                    mhPush mcfHeap du' u
-              go
+            if d > dv 
+              then go
+              else do
+                UM.unsafeWrite mcfVisit v True
+                let !st = mcfOffset U.! v
+                    !en = mcfOffset U.! (v + 1)
+                
+                forLoop st (== en) succ $ \ !i -> do
+                  !cap <- UM.unsafeRead mcfEdgeCap i
+                  let !u = mcfEdgeTo U.! i
+                      !cost = mcfEdgeCost U.! i
+                      !hu = pot U.! u
+                  when (cap > 0) do
+                    !du <- UM.unsafeRead mcfDist u
+                    let !du' = d + cost + hv - hu
+                    when (du' < du) do
+                      UM.unsafeWrite mcfDist u du'
+                      UM.unsafeWrite mcfPrevV u v
+                      UM.unsafeWrite mcfPrevE u i
+                      mhPush mcfHeap du' u
+                go
 
   go
   UM.unsafeRead mcfVisit t
+{-# INLINABLE mcfDijkstra #-}
 {-# SPECIALIZE mcfDijkstra :: MCFGraph (ST s) -> Int -> Int -> Int -> ST s Bool #-}
 {-# SPECIALIZE mcfDijkstra :: MCFGraph IO -> Int -> Int -> Int -> IO Bool #-}

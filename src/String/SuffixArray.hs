@@ -31,12 +31,13 @@ lcpArray !sa !s = runST $ do
 
   _ <- forLoopFold 0 (== n) succ 0 $ \ !h !i -> do
     let !r = rank U.! i
-    if r == 0 then return 0 -- sa[0] : 空文字列
-    else do
-      let !prevIdx = sa U.! (r - 1)
-          !h' = headLoop i prevIdx h
-      UM.unsafeWrite lcp (r - 1) h'
-      return $! max 0 (h' - 1)
+    if r == 0 
+      then return 0 -- sa[0] : 空文字列
+      else do
+        let !prevIdx = sa U.! (r - 1)
+            !h' = headLoop i prevIdx h
+        UM.unsafeWrite lcp (r - 1) h'
+        return $! max 0 (h' - 1)
 
   U.cons 0 <$> U.unsafeFreeze lcp
 {-# INLINABLE lcpArray #-}
@@ -77,13 +78,14 @@ _suffixArray !numAlphabet !s = runST $ do
     UM.unsafeWrite slType i ti
 
     -- s[i + 1] : LMS
-    if ti == 1 && ti' == 0 then do
-      !enc' <- UM.unsafeRead ens0 c'
-      UM.unsafeWrite sa (enc' - 1) $! i + 1
-      UM.unsafeWrite ens0 c' $! enc' - 1
-      UM.unsafeWrite lms acc $! i + 1
-      return $! acc + 1
-    else return acc
+    if ti == 1 && ti' == 0 
+      then do
+        !enc' <- UM.unsafeRead ens0 c'
+        UM.unsafeWrite sa (enc' - 1) $! i + 1
+        UM.unsafeWrite ens0 c' $! enc' - 1
+        UM.unsafeWrite lms acc $! i + 1
+        return $! acc + 1
+      else return acc
 
   -- lmsの昇順
   !lmsOrderd <- U.reverse <$> U.unsafeFreeze (UM.unsafeTake nlms lms)
@@ -115,26 +117,29 @@ _suffixArray !numAlphabet !s = runST $ do
   -- (直前のlmsが何番目か, 直前のlmsSubに付けたindexが何か)
   (_, !maxSubIdx) <- forLoopFold 0 (> n) succ (-1, -1 :: Int) $ \ (!prevLMS, !prevIdx) !i -> do
     !v <- UM.unsafeRead sa i
-    if v /= -1 && isLMS v then do
-      let !currLMS = lmsIndices U.! v
-          !prevLMSSub = lmsSubString prevLMS
-          !currLMSSub = lmsSubString currLMS
-      if prevLMSSub < currLMSSub then do
-        UM.unsafeWrite lmsSubIndices currLMS $! prevIdx + 1
-        return (currLMS, prevIdx + 1)
-      else do
-        UM.unsafeWrite lmsSubIndices currLMS prevIdx
-        return (currLMS, prevIdx)
-    else return (prevLMS, prevIdx)
+    if v /= -1 && isLMS v 
+      then do
+        let !currLMS = lmsIndices U.! v
+            !prevLMSSub = lmsSubString prevLMS
+            !currLMSSub = lmsSubString currLMS
+        if prevLMSSub < currLMSSub 
+          then do
+            UM.unsafeWrite lmsSubIndices currLMS $! prevIdx + 1
+            return (currLMS, prevIdx + 1)
+          else do
+            UM.unsafeWrite lmsSubIndices currLMS prevIdx
+            return (currLMS, prevIdx)
+      else return (prevLMS, prevIdx)
 
   !lmsSubString' <- U.unsafeFreeze lmsSubIndices
 
   !saLMS <- 
-    if maxSubIdx + 1 == nlms then do -- すべてユニークな順位
-      !res <- UM.unsafeNew nlms
-      U.iforM_ lmsSubString' $ \ !i !subIdx -> UM.unsafeWrite res subIdx i
-      U.unsafeFreeze res
-    else return $! U.tail $ _suffixArray (maxSubIdx + 1) lmsSubString' -- 重複があるので、SAで求める
+    if maxSubIdx + 1 == nlms -- すべてユニークな順位
+      then do
+        !res <- UM.unsafeNew nlms
+        U.iforM_ lmsSubString' $ \ !i !subIdx -> UM.unsafeWrite res subIdx i
+        U.unsafeFreeze res
+      else return $! U.tail $ _suffixArray (maxSubIdx + 1) lmsSubString' -- 重複があるので、SAで求める
 
   UM.set sa (-1)
 

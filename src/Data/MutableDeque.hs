@@ -1,7 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.MutableDeque where
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.Bits
 import Data.Primitive.MutVar
 import Data.Vector.Unboxed.Mutable qualified as UM
@@ -23,7 +22,6 @@ mdNew !n = do
   t <- newMutVar 0
   mdMask <- newMutVar (sz - 1)
   return $ MutableDeque vect h t mdMask
-{-# INLINE mdNew #-}
 
 mdGrow :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m ()
 mdGrow MutableDeque{..} = do
@@ -41,9 +39,6 @@ mdGrow MutableDeque{..} = do
   writeMutVar mdHead 0
   writeMutVar mdTail oldSz
   writeMutVar mdMask $! newSz - 1
-{-# INLINE mdGrow #-}
-{-# SPECIALIZE mdGrow :: UM.Unbox a => MutableDeque (ST s) a -> ST s () #-}
-{-# SPECIALIZE mdGrow :: UM.Unbox a => MutableDeque IO a -> IO () #-}
 
 mdPushFront :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> a -> m ()
 mdPushFront md@MutableDeque{..} !x = do
@@ -60,8 +55,6 @@ mdPushFront md@MutableDeque{..} !x = do
       UM.unsafeWrite v newH x
       writeMutVar mdHead newH
 {-# INLINE mdPushFront #-}
-{-# SPECIALIZE mdPushFront :: UM.Unbox a => MutableDeque (ST s) a -> a -> ST s () #-}
-{-# SPECIALIZE mdPushFront :: UM.Unbox a => MutableDeque IO a -> a -> IO () #-}
 
 mdPushBack :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> a -> m ()
 mdPushBack md@MutableDeque{..} !x = do
@@ -78,8 +71,6 @@ mdPushBack md@MutableDeque{..} !x = do
       UM.unsafeWrite v t x
       writeMutVar mdTail newT
 {-# INLINE mdPushBack #-}
-{-# SPECIALIZE mdPushBack :: UM.Unbox a => MutableDeque (ST s) a -> a -> ST s () #-}
-{-# SPECIALIZE mdPushBack :: UM.Unbox a => MutableDeque IO a -> a -> IO () #-}
 
 mdPopFront :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
 mdPopFront MutableDeque{..} = do
@@ -95,8 +86,6 @@ mdPopFront MutableDeque{..} = do
       writeMutVar mdHead newH
       return $ Just top
 {-# INLINE mdPopFront #-}
-{-# SPECIALIZE mdPopFront :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE mdPopFront :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
 
 mdPopBack :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
 mdPopBack MutableDeque{..} = do
@@ -112,14 +101,10 @@ mdPopBack MutableDeque{..} = do
       writeMutVar mdTail newT
       return $ Just bot
 {-# INLINE mdPopBack #-}
-{-# SPECIALIZE mdPopBack :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE mdPopBack :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
 
 mdNull :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m Bool
 mdNull MutableDeque{..} = (==) <$> readMutVar mdHead <*> readMutVar mdTail
 {-# INLINE mdNull #-}
-{-# SPECIALIZE mdNull :: UM.Unbox a => MutableDeque (ST s) a -> ST s Bool #-}
-{-# SPECIALIZE mdNull :: UM.Unbox a => MutableDeque IO a -> IO Bool #-}
 
 mdTop :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
 mdTop MutableDeque{..} = do
@@ -131,8 +116,6 @@ mdTop MutableDeque{..} = do
       !v <- readMutVar mdVect
       Just <$> UM.unsafeRead v h
 {-# INLINE mdTop #-}
-{-# SPECIALIZE mdTop :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE mdTop :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
 
 mdBot :: (PrimMonad m, UM.Unbox a) => MutableDeque m a -> m (Maybe a)
 mdBot MutableDeque{..} = do
@@ -146,13 +129,9 @@ mdBot MutableDeque{..} = do
       let !newT = (t - 1) .&. m
       Just <$> UM.unsafeRead v newT
 {-# INLINE mdBot #-}
-{-# SPECIALIZE mdBot :: UM.Unbox a => MutableDeque (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE mdBot :: UM.Unbox a => MutableDeque IO a -> IO (Maybe a) #-}
 
 mdClear :: PrimMonad m => MutableDeque m a -> m ()
 mdClear MutableDeque{..} = do
   writeMutVar mdHead 0
   writeMutVar mdTail 0
 {-# INLINE mdClear #-}
-{-# SPECIALIZE mdClear :: MutableDeque (ST s) a -> ST s () #-}
-{-# SPECIALIZE mdClear :: MutableDeque IO a -> IO () #-}

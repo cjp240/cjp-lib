@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.UFP where
-import Control.Monad.ST
+import Control.Monad
 import Control.Monad.Primitive
 import Data.Ix
 import Data.Vector.Unboxed qualified as U
@@ -29,8 +29,6 @@ ufpRoot ufp@UnionFindPotential{..} !x = do
   (!ir, !p) <- _ufpRoot ufp ix
   return (ufVs ufpUF U.! ir, p)
 {-# INLINE ufpRoot #-}
-{-# SPECIALIZE ufpRoot :: (UM.Unbox p, U.Unbox v, Ix v) => UnionFindPotential (ST s) v p -> v -> ST s (v, p) #-}
-{-# SPECIALIZE ufpRoot :: (UM.Unbox p, U.Unbox v, Ix v) => UnionFindPotential IO v p -> v -> IO (v, p) #-}
 
 -- V[y] - V[x]
 ufpGetDiff :: (PrimMonad m, UM.Unbox p, Ix v) => UnionFindPotential m v p -> v -> v -> m (Maybe p)
@@ -43,8 +41,6 @@ ufpGetDiff ufp@UnionFindPotential{..} !x !y = do
   if irx /= iry then return Nothing
   else return $ Just $! ufpOp py $ ufpInv px
 {-# INLINE ufpGetDiff #-}
-{-# SPECIALIZE ufpGetDiff :: (UM.Unbox p, Ix v) => UnionFindPotential (ST s) v p -> v -> v -> ST s (Maybe p) #-}
-{-# SPECIALIZE ufpGetDiff :: (UM.Unbox p, Ix v) => UnionFindPotential IO v p -> v -> v -> IO (Maybe p) #-}
 
 _ufpRoot :: (PrimMonad m, UM.Unbox p) => UnionFindPotential m v p -> Int -> m (Int, p)
 _ufpRoot ufp@UnionFindPotential{..} !ix = do
@@ -58,8 +54,6 @@ _ufpRoot ufp@UnionFindPotential{..} !ix = do
     UM.unsafeWrite ufpDiff ix diffRootV
     return (root, diffRootV)
 {-# INLINE _ufpRoot #-}
-{-# SPECIALIZE _ufpRoot :: UM.Unbox p => UnionFindPotential (ST s) v p -> Int -> ST s (Int, p) #-}
-{-# SPECIALIZE _ufpRoot :: UM.Unbox p => UnionFindPotential IO v p -> Int -> IO (Int, p) #-}
 
 -- V[y] - V[x] = w
 ufpUnite :: (PrimMonad m, UM.Unbox p, U.Unbox v, Ix v, Eq p) => UnionFindPotential m v p -> v -> v -> p -> m (Maybe v)
@@ -85,22 +79,14 @@ ufpUnite ufp@UnionFindPotential{..} !x !y !w = do
       return $ Just r
     else return Nothing
 {-# INLINE ufpUnite #-}
-{-# SPECIALIZE ufpUnite :: (UM.Unbox p, U.Unbox v, Ix v, Eq p) => UnionFindPotential (ST s) v p -> v -> v -> p -> ST s (Maybe v) #-}
-{-# SPECIALIZE ufpUnite :: (UM.Unbox p, U.Unbox v, Ix v, Eq p) => UnionFindPotential IO v p -> v -> v -> p -> IO (Maybe v) #-}
 
 ufpUnite_ :: (PrimMonad m, UM.Unbox p, UM.Unbox v, Ix v, Eq p) => UnionFindPotential m v p -> v -> v -> p -> m ()
-ufpUnite_ !ufp !x !y !w = do
-  _ <- ufpUnite ufp x y w
-  return ()
+ufpUnite_ !ufp !x !y !w = void $ ufpUnite ufp x y w
 {-# INLINE ufpUnite_ #-}
-{-# SPECIALIZE ufpUnite_ :: (UM.Unbox p, U.Unbox v, Ix v, Eq p) => UnionFindPotential (ST s) v p -> v -> v -> p -> ST s () #-}
-{-# SPECIALIZE ufpUnite_ :: (UM.Unbox p, U.Unbox v, Ix v, Eq p) => UnionFindPotential IO v p -> v -> v -> p -> IO () #-}
 
 ufpIsSame :: (PrimMonad m, Ix v) => UnionFindPotential m v p -> v -> v -> m Bool
 ufpIsSame UnionFindPotential{..} !x !y = ufIsSame ufpUF x y
 {-# INLINE ufpIsSame #-}
-{-# SPECIALIZE ufpIsSame :: Ix v => UnionFindPotential (ST s) v p -> v -> v -> ST s Bool #-}
-{-# SPECIALIZE ufpIsSame :: Ix v => UnionFindPotential IO v p -> v -> v -> IO Bool #-}
 
 ufpSize :: (PrimMonad m, Ix v) => UnionFindPotential m v p -> v -> m Int
 ufpSize UnionFindPotential{..} !x = ufSize ufpUF x

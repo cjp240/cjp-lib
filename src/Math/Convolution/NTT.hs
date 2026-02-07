@@ -244,8 +244,6 @@ _nttButterfly NTTInfo{..} !n !v = do
             UM.unsafeWrite v (i + offset + p)     $! a0 + a2 - (a1 + a3)
             UM.unsafeWrite v (i + offset + p * 2) $! a0 - a2 + a1na3imag
             UM.unsafeWrite v (i + offset + p * 3) $! a0 - a2 - a1na3imag
-{-# SPECIALIZE _nttButterfly :: NTTInfo 998244353 -> Int -> UM.MVector s IntMod998 -> ST s () #-}
-{-# SPECIALIZE _nttButterfly :: NTTInfo 998244353 -> Int -> UM.IOVector IntMod998 -> IO () #-}
 
 _nttButterflyInv :: forall n m. (PrimMonad m, KnownNat n) => NTTInfo n -> Int -> UM.MVector (PrimState m) (IntMod n) -> m ()
 _nttButterflyInv NTTInfo{..} !n !v = do
@@ -288,5 +286,3 @@ _nttButterflyInv NTTInfo{..} !n !v = do
             UM.unsafeWrite v (i + offset + p)     $! (a0 - a1 + a2na3iimag) * irot
             UM.unsafeWrite v (i + offset + p * 2) $! (a0 + a1 - a2 - a3) * irot2
             UM.unsafeWrite v (i + offset + p * 3) $! (a0 - a1 - a2na3iimag) * irot3
-{-# SPECIALIZE _nttButterflyInv :: NTTInfo 998244353 -> Int -> UM.MVector s IntMod998 -> ST s () #-}
-{-# SPECIALIZE _nttButterflyInv :: NTTInfo 998244353 -> Int -> UM.IOVector IntMod998 -> IO () #-}

@@ -95,9 +95,7 @@ matPow a@(Matrix !ha !wa _) !k
       | n == 0 = acc
       | odd n = go (acc * base) (base * base) (div n 2)
       | otherwise = go acc (base * base) (div n 2)
-{-# INLINE matPow #-}
-{-# SPECIALIZE matPow :: (U.Unbox a, SemiRing a) => Matrix a -> Int -> Matrix a #-}
-{-# SPECIALIZE matPow :: (U.Unbox a, SemiRing a) => Matrix a -> Integer -> Matrix a #-}
+{-# INLINABLE matPow #-}
 
 matScaleL :: (U.Unbox a, SemiRing a) => a -> Matrix a -> Matrix a
 matScaleL !s Matrix{..} = Matrix matHeight matWidth $! U.map (s <.>) matVec

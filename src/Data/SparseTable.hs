@@ -31,14 +31,15 @@ sptBuild !op !v = runST $ do
     
     forLoop 0 (== n) succ $ \ !i -> do
       !v1 <- UM.unsafeRead t (prevRow + i)
-      if i + offset < n then do
-        !v2 <- UM.unsafeRead t (prevRow + i + offset)
-        UM.unsafeWrite t (currRow + i) $! op v1 v2
-      else UM.unsafeWrite t (currRow + i) v1
+      if i + offset < n 
+        then do
+          !v2 <- UM.unsafeRead t (prevRow + i + offset)
+          UM.unsafeWrite t (currRow + i) $! op v1 v2
+        else UM.unsafeWrite t (currRow + i) v1
 
   !table <- U.unsafeFreeze t
   return $ SparseTable table n op
-{-# INLINE sptBuild #-}
+{-# INLINABLE sptBuild #-}
 
 sptProd :: U.Unbox a => SparseTable a -> Int -> Int -> a
 sptProd SparseTable{..} !l !r

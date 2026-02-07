@@ -2,7 +2,6 @@
 {-# LANGUAGE BlockArguments #-}
 module Data.BIT where
 import Control.Monad
-import Control.Monad.ST
 import Control.Monad.Primitive
 import Data.Bits
 import Data.Vector.Unboxed qualified as U
@@ -21,7 +20,6 @@ bitNew :: (PrimMonad m, UM.Unbox a) => Int -> (a -> a -> a) -> a -> m (BIT m a)
 bitNew n op unit = do
   node <- UM.replicate (n + 1) unit
   return $ BIT n node op unit
-{-# INLINE bitNew #-}
 
 bitFromVect :: (PrimMonad m, UM.Unbox a) => (a -> a -> a) -> a -> U.Vector a -> m (BIT m a)
 bitFromVect !op !unit !v = do
@@ -36,11 +34,9 @@ bitFromVect !op !unit !v = do
       !ni <- UM.unsafeRead node i
       UM.unsafeModify node (\ !nj -> let !nj' = op ni nj in nj') j
   return $ BIT n node op unit
-{-# INLINE bitFromVect #-}
 
 bitFromList :: (PrimMonad m, UM.Unbox a) => (a -> a -> a) -> a -> [a] -> m (BIT m a)
 bitFromList op unit xs = bitFromVect op unit $ U.fromList xs
-{-# INLINE bitFromList #-}
 
 -- i 番目に x を作用する
 bitApply :: (PrimMonad m, UM.Unbox a) => BIT m a -> Int -> a -> m ()
@@ -48,13 +44,11 @@ bitApply BIT{..} !i !x = loop (i + 1)
   where
     loop !currI
       | currI <= bitN = do
-          UM.modify bitNode (\ !ni -> let !ni' = bitOp x ni in ni') currI
+          UM.unsafeModify bitNode (bitOp x) currI
           let !nxtI = currI + (currI .&. (- currI))
           loop nxtI
       | otherwise = return ()
 {-# INLINE bitApply #-}
-{-# SPECIALIZE bitApply :: BIT (ST s) Int -> Int -> Int -> ST s () #-}
-{-# SPECIALIZE bitApply :: BIT IO Int -> Int -> Int -> IO () #-}
 
 bitProd :: (PrimMonad m, UM.Unbox a) => BIT m a -> Int -> m a
 bitProd BIT{..} !i = loop (i + 1) bitUnit
@@ -67,5 +61,3 @@ bitProd BIT{..} !i = loop (i + 1) bitUnit
           loop j' acc'
       | otherwise = return acc
 {-# INLINE bitProd #-}
-{-# SPECIALIZE bitProd :: BIT (ST s) Int -> Int -> ST s Int #-}
-{-# SPECIALIZE bitProd :: BIT IO Int -> Int -> IO Int #-}

@@ -3,7 +3,6 @@
 module Data.MutableHeap where
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.Bits
 import Data.Primitive.MutVar
 import Data.Vector.Unboxed.Mutable qualified as UM
@@ -19,7 +18,6 @@ mhNew !cap = do
   vect <- newMutVar v
   size <- newMutVar 0
   return $ MutableHeap vect size
-{-# INLINE mhNew #-}
 
 mhPush :: (PrimMonad m, UM.Unbox p, Ord p, UM.Unbox a) => MutableHeap m p a -> p -> a -> m ()
 mhPush MutableHeap{..} !p !a = do
@@ -47,9 +45,7 @@ mhPush MutableHeap{..} !p !a = do
               else UM.unsafeWrite v' i (p, a)
 
   go $ sz + 1
-{-# INLINE mhPush #-}
-{-# SPECIALIZE mhPush :: (UM.Unbox p, Ord p, UM.Unbox a) => MutableHeap (ST s) p a -> p -> a -> ST s () #-}
-{-# SPECIALIZE mhPush :: (UM.Unbox p, Ord p, UM.Unbox a) => MutableHeap IO p a -> p -> a -> IO () #-}
+{-# INLINABLE mhPush #-}
 
 mhPop :: (PrimMonad m, UM.Unbox p, Ord p, UM.Unbox a) => MutableHeap m p a -> m (Maybe (p, a))
 mhPop MutableHeap{..} = do
@@ -86,15 +82,11 @@ mhPop MutableHeap{..} = do
         go 1
 
       return $ Just top
-{-# INLINE mhPop #-}
-{-# SPECIALIZE mhPop :: (UM.Unbox p, Ord p, UM.Unbox a) => MutableHeap (ST s) p a -> ST s (Maybe (p, a)) #-}
-{-# SPECIALIZE mhPop :: (UM.Unbox p, Ord p, UM.Unbox a) => MutableHeap IO p a -> IO (Maybe (p, a)) #-}
+{-# INLINABLE mhPop #-}
 
 mhNull :: PrimMonad m => MutableHeap m p a -> m Bool
 mhNull MutableHeap{..} = (== 0) <$> readMutVar mhSize
 {-# INLINE mhNull #-}
-{-# SPECIALIZE mhNull :: MutableHeap (ST s) p a -> ST s Bool #-}
-{-# SPECIALIZE mhNull :: MutableHeap IO p a -> IO Bool #-}
 
 mhTop :: (PrimMonad m, UM.Unbox p, UM.Unbox a) => MutableHeap m p a -> m (Maybe (p, a))
 mhTop MutableHeap{..} = do
@@ -105,11 +97,7 @@ mhTop MutableHeap{..} = do
       !v <- readMutVar mhVect
       Just <$> UM.unsafeRead v 1
 {-# INLINE mhTop #-}
-{-# SPECIALIZE mhTop :: (UM.Unbox p, UM.Unbox a) => MutableHeap (ST s) p a -> ST s (Maybe (p, a)) #-}
-{-# SPECIALIZE mhTop :: (UM.Unbox p, UM.Unbox a) => MutableHeap IO p a -> IO (Maybe (p, a)) #-}
 
 mhClear :: PrimMonad m => MutableHeap m p a -> m ()
 mhClear MutableHeap{..} = writeMutVar mhSize 0
 {-# INLINE mhClear #-}
-{-# SPECIALIZE mhClear :: MutableHeap (ST s) p a -> ST s () #-}
-{-# SPECIALIZE mhClear :: MutableHeap IO p a -> IO () #-}

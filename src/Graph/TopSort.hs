@@ -34,15 +34,17 @@ topSort !n !edges = runST $ do
             let !adju = csrAdj g u
             U.forM_ adju $ \ !v -> do
               !d <- UM.unsafeRead inDeg v
-              if d == 1 then do
-                UM.unsafeWrite inDeg v 0
-                mqPush que v
-              else UM.unsafeWrite inDeg v $! d - 1
+              if d == 1 
+                then do
+                  UM.unsafeWrite inDeg v 0
+                  mqPush que v
+                else UM.unsafeWrite inDeg v $! d - 1
             go (idx + 1)
 
   !cnt <- go 0
-  if cnt == n then Just <$> U.unsafeFreeze res
-  else return Nothing
+  if cnt == n 
+    then Just <$> U.unsafeFreeze res
+    else return Nothing
 {-# INLINABLE topSort #-}
 
 -- 辞書順最小
@@ -69,15 +71,17 @@ topSortMin !n !edges = runST $ do
             let !adju = csrAdj g u
             U.forM_ adju $ \ !v -> do
               !d <- UM.unsafeRead inDeg v
-              if d == 1 then do
-                UM.unsafeWrite inDeg v 0
-                mhPush hp v v
-              else UM.unsafeWrite inDeg v $! d - 1
+              if d == 1 
+                then do
+                  UM.unsafeWrite inDeg v 0
+                  mhPush hp v v
+                else UM.unsafeWrite inDeg v $! d - 1
             go (idx + 1)
 
   !cnt <- go 0
-  if cnt == n then Just <$> U.unsafeFreeze res
-  else return Nothing
+  if cnt == n 
+    then Just <$> U.unsafeFreeze res
+    else return Nothing
 {-# INLINABLE topSortMin #-}
 
 topSortUnique :: Int -> U.Vector (Int, Int) -> Maybe (Bool, U.Vector Int)
@@ -110,14 +114,16 @@ topSortUnique !n !edges = runST $ do
             let !adju = csrAdj g u
             U.forM_ adju $ \ !v -> do
               !d <- UM.unsafeRead inDeg v
-              if d == 1 then do
-                UM.unsafeWrite inDeg v 0
-                mqPush que v
-              else UM.unsafeWrite inDeg v $! d - 1
+              if d == 1 
+                then do
+                  UM.unsafeWrite inDeg v 0
+                  mqPush que v
+                else UM.unsafeWrite inDeg v $! d - 1
             
             go (idx + 1) isUni'
 
   (!cnt, !unique) <- go 0 True
-  if cnt == n then Just . (unique, ) <$> U.unsafeFreeze res
-  else return Nothing
+  if cnt == n 
+    then Just . (unique, ) <$> U.unsafeFreeze res
+    else return Nothing
 {-# INLINABLE topSortUnique #-}

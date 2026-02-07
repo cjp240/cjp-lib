@@ -89,4 +89,3 @@ sccReduct !n !edges = (numSCC, cmp, vs, offset, dagEdges)
   where
     (!numSCC, !cmp, !vs, !offset) = sccDecomp n edges
     !dagEdges = U.uniq $ fastSortU $ U.filter (uncurry (/=)) $ U.map (BF.bimap (cmp U.!) (cmp U.!)) edges
-{-# INLINE sccReduct #-}

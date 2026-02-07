@@ -67,11 +67,6 @@ multMod (IntMod !a) (IntMod !b)
   where
     !m = modVal @n
 {-# INLINE multMod #-}
-{-# SPECIALIZE multMod :: IntMod998 -> IntMod998 -> IntMod998 #-}
-{-# SPECIALIZE multMod :: IntMod107 -> IntMod107 -> IntMod107 #-}
-{-# SPECIALIZE multMod :: IntMod754 -> IntMod754 -> IntMod754 #-}
-{-# SPECIALIZE multMod :: IntMod167 -> IntMod167 -> IntMod167 #-}
-{-# SPECIALIZE multMod :: IntMod469 -> IntMod469 -> IntMod469 #-}
 
 montgomeryReduce :: Int -> Word32 -> Word64 -> Int
 montgomeryReduce !modVal_ !mInv !t = 
@@ -109,11 +104,6 @@ unIntMod (IntMod !a)
   where
     !m = modVal @n
 {-# INLINE unIntMod #-}
-{-# SPECIALIZE unIntMod :: IntMod998 -> Int #-}
-{-# SPECIALIZE unIntMod :: IntMod107 -> Int #-}
-{-# SPECIALIZE unIntMod :: IntMod754 -> Int #-}
-{-# SPECIALIZE unIntMod :: IntMod167 -> Int #-}
-{-# SPECIALIZE unIntMod :: IntMod469 -> Int #-}
 
 modPow :: (KnownNat n, Integral k) => IntMod n -> k -> IntMod n
 modPow !a !n
@@ -126,10 +116,6 @@ modPow !a !n
       | odd e = go (b * b) (div e 2) (acc * b)
       | otherwise = go (b * b) (div e 2) acc
 {-# INLINABLE modPow #-}
-{-# SPECIALIZE modPow :: IntMod998 -> Int -> IntMod998 #-}
-{-# SPECIALIZE modPow :: IntMod998 -> Integer -> IntMod998 #-}
-{-# SPECIALIZE modPow :: IntMod107 -> Int -> IntMod107 #-}
-{-# SPECIALIZE modPow :: IntMod107 -> Integer -> IntMod107 #-}
 
 tonelliShanks :: forall n. KnownNat n => IntMod n -> Maybe (IntMod n)
 tonelliShanks 0 = Just 0
@@ -140,10 +126,11 @@ tonelliShanks !a =
       !check = modPow a expo
   in 
     if check == 1
-     then if p .&. 3 == 3 
-      then Just $ modPow a (shiftR (p + 1) 2)
-      else Just $ solve p a
-     else Nothing
+      then 
+        if p .&. 3 == 3 
+          then Just $ modPow a (shiftR (p + 1) 2)
+          else Just $ solve p a
+      else Nothing
   where
     trailingZeros :: Integer -> Int
     trailingZeros !n | n == 0 = 0

@@ -16,16 +16,19 @@ accumMap :: (Foldable t, Ord k) => (a -> b -> a) -> a -> Map.Map k a -> t (k, b)
 accumMap op def = F.foldl' f
   where
     f m (k, v) = Map.alter (\x -> Just (op (fromMaybe def x) v)) k m
+{-# INLINE accumMap #-}
 
 accumIntMap :: Foldable t => (a -> b -> a) -> a -> IM.IntMap a -> t (Int, b) -> IM.IntMap a
 accumIntMap op def = F.foldl' f
   where
     f m (k, v) = IM.alter (\x -> Just (op (fromMaybe def x) v)) k m
+{-# INLINE accumIntMap #-}
 
 accumHashMap :: (Foldable t, Hashable.Hashable k) => (a -> b -> a) -> a -> HM.HashMap k a -> t (k, b) -> HM.HashMap k a
 accumHashMap op def = F.foldl' f
   where
     f m (k, v) = HM.alter (\x -> Just (op (fromMaybe def x) v)) k m
+{-# INLINE accumHashMap #-}
 
 --------------------------------------------------------------------------------
 -- Template : forLoop
@@ -116,3 +119,4 @@ runLength = map f . L.group
   where
     f xs@(!x : _) = let !len = length xs in (x, len)
     f [] = undefined
+{-# INLINE runLength #-}

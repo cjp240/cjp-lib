@@ -1,7 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.MutableStack where
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.Primitive.MutVar
 import Data.Vector.Unboxed.Mutable qualified as UM
 
@@ -16,7 +15,6 @@ msNew !sz = do
   vect <- newMutVar v
   t <- newMutVar 0
   return $ MutableStack vect t
-{-# INLINE msNew #-}
 
 msPop :: (PrimMonad m, UM.Unbox a) => MutableStack m a -> m (Maybe a)
 msPop MutableStack{..} = do
@@ -28,8 +26,6 @@ msPop MutableStack{..} = do
     writeMutVar msTail $! t - 1
     return $ Just top
 {-# INLINE msPop #-}
-{-# SPECIALIZE msPop :: UM.Unbox a => MutableStack (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE msPop :: UM.Unbox a => MutableStack IO a -> IO (Maybe a) #-}
 
 msPush :: (PrimMonad m, UM.Unbox a) => MutableStack m a -> a -> m ()
 msPush MutableStack{..} !x = do
@@ -43,15 +39,11 @@ msPush MutableStack{..} !x = do
       return newV
   UM.unsafeWrite v' t x
   writeMutVar msTail $! t + 1
-{-# INLINE msPush #-}
-{-# SPECIALIZE msPush :: UM.Unbox a => MutableStack (ST s) a -> a -> ST s () #-}
-{-# SPECIALIZE msPush :: UM.Unbox a => MutableStack IO a -> a -> IO () #-}
+{-# INLINABLE msPush #-}
 
 msNull :: (PrimMonad m, UM.Unbox a) => MutableStack m a -> m Bool
 msNull MutableStack{..} = (== 0) <$> readMutVar msTail
 {-# INLINE msNull #-}
-{-# SPECIALIZE msNull :: UM.Unbox a => MutableStack (ST s) a -> ST s Bool #-}
-{-# SPECIALIZE msNull :: UM.Unbox a => MutableStack IO a -> IO Bool #-}
 
 msTop :: (PrimMonad m, UM.Unbox a) => MutableStack m a -> m (Maybe a)
 msTop MutableStack{..} = do
@@ -61,11 +53,7 @@ msTop MutableStack{..} = do
     !v <- readMutVar msVect
     Just <$> UM.unsafeRead v (t - 1)
 {-# INLINE msTop #-}
-{-# SPECIALIZE msTop :: UM.Unbox a => MutableStack (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE msTop :: UM.Unbox a => MutableStack IO a -> IO (Maybe a) #-}
 
 msClear :: PrimMonad m => MutableStack m a -> m ()
 msClear MutableStack{..} = writeMutVar msTail 0
 {-# INLINE msClear #-}
-{-# SPECIALIZE msClear :: MutableStack (ST s) a -> ST s () #-}
-{-# SPECIALIZE msClear :: MutableStack IO a -> IO () #-}

@@ -3,7 +3,6 @@
 module Graph.WarshallFloyd where
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.Ix
 import Data.Vector.Unboxed qualified as U
 
@@ -59,9 +58,7 @@ wfAddEdge WFData{..} (!u, !v, !w) = do
           when (dvj < inf) do
             let !newD = diu + w + dvj
             mivModify wfDist (min newD) (i, j)
-{-# INLINE wfAddEdge #-}
-{-# SPECIALIZE wfAddEdge :: (Ix v, U.Unbox v) => WFData (ST s) v -> (v, v, Int) -> ST s () #-}
-{-# SPECIALIZE wfAddEdge :: (Ix v, U.Unbox v) => WFData IO v -> (v, v, Int) -> IO () #-}
+{-# INLINABLE wfAddEdge #-}
 
 wfAddEdgeUn :: (PrimMonad m, U.Unbox v, Ix v) => WFData m v -> (v, v, Int) -> m ()
 wfAddEdgeUn WFData{..} (!u, !v, !w) = do
@@ -85,16 +82,11 @@ wfAddEdgeUn WFData{..} (!u, !v, !w) = do
             let !d1 = if diu < inf && dvj < inf then diu + duv + dvj else inf
                 !d2 = if div' < inf && duj < inf then div' + dvu + duj else inf
             mivModify wfDist (min (min d1 d2)) (i, j)
-{-# INLINE wfAddEdgeUn #-}
-{-# SPECIALIZE wfAddEdgeUn :: (Ix v, U.Unbox v) => WFData (ST s) v -> (v, v, Int) -> ST s () #-}
-{-# SPECIALIZE wfAddEdgeUn :: (Ix v, U.Unbox v) => WFData IO v -> (v, v, Int) -> IO () #-}
+{-# INLINABLE wfAddEdgeUn #-}
 
 wfGetDist :: (PrimMonad m, Ix v) => WFData m v -> v -> v -> m Int
 wfGetDist WFData{..} !u !v = mivRead wfDist (u, v)
 {-# INLINE wfGetDist #-}
-{-# SPECIALIZE wfGetDist :: Ix v => WFData (ST s) v -> v -> v -> ST s Int #-}
-{-# SPECIALIZE wfGetDist :: Ix v => WFData IO v -> v -> v -> IO Int #-}
 
 wfFreeze :: (PrimMonad m, Ix v) => WFData m v -> m (IxVect (v, v) Int)
 wfFreeze WFData{..} = ivUnsafeFreeze wfDist
-{-# INLINE wfFreeze #-}

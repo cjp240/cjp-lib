@@ -23,10 +23,11 @@ bellmanFord !bnd !edges !start = runST $ do
                   !du <- mivRead dist u
                   !dv <- mivRead dist v
                   let !newD = du + w
-                  if du /= inf && dv > newD then do
-                    mivWrite dist v newD
-                    return True
-                  else return acc
+                  if du /= inf && dv > newD 
+                    then do
+                      mivWrite dist v newD
+                      return True
+                    else return acc
                 )
                 False edges
             if updated
@@ -36,3 +37,4 @@ bellmanFord !bnd !edges !start = runST $ do
   go 0 >>= \case
     True -> return Nothing
     False -> Just <$> ivUnsafeFreeze dist
+{-# INLINABLE bellmanFord #-}

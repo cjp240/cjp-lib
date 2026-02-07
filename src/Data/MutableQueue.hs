@@ -1,8 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.MutableQueue where
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.Primitive.MutVar
+import Data.Vector.Unboxed qualified as U
 import Data.Vector.Unboxed.Mutable qualified as UM
 
 data MutableQueue m a = MutableQueue
@@ -18,7 +18,6 @@ mqNew !sz = do
   h <- newMutVar 0
   t <- newMutVar 0
   return $ MutableQueue vect h t
-{-# INLINE mqNew #-}
 
 mqPop :: (PrimMonad m, UM.Unbox a) => MutableQueue m a -> m (Maybe a)
 mqPop MutableQueue{..} = do
@@ -32,8 +31,6 @@ mqPop MutableQueue{..} = do
       writeMutVar mqHead $! h + 1
       return $ Just top
 {-# INLINE mqPop #-}
-{-# SPECIALIZE mqPop :: UM.Unbox a => MutableQueue (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE mqPop :: UM.Unbox a => MutableQueue IO a -> IO (Maybe a) #-}
 
 mqPush :: (PrimMonad m, UM.Unbox a) => MutableQueue m a -> a -> m ()
 mqPush MutableQueue{..} !x = do
@@ -48,15 +45,11 @@ mqPush MutableQueue{..} !x = do
         return newV
   UM.unsafeWrite v' t x
   writeMutVar mqTail $! t + 1
-{-# INLINE mqPush #-}
-{-# SPECIALIZE mqPush :: UM.Unbox a => MutableQueue (ST s) a -> a -> ST s () #-}
-{-# SPECIALIZE mqPush :: UM.Unbox a => MutableQueue IO a -> a -> IO () #-}
+{-# INLINABLE mqPush #-}
 
 mqNull :: PrimMonad m => MutableQueue m a -> m Bool
 mqNull MutableQueue{..} = (==) <$> readMutVar mqHead <*> readMutVar mqTail
 {-# INLINE mqNull #-}
-{-# SPECIALIZE mqNull :: MutableQueue (ST s) a -> ST s Bool #-}
-{-# SPECIALIZE mqNull :: MutableQueue IO a -> IO Bool #-}
 
 mqTop :: (PrimMonad m, UM.Unbox a) => MutableQueue m a -> m (Maybe a)
 mqTop MutableQueue{..} = do
@@ -67,13 +60,21 @@ mqTop MutableQueue{..} = do
     then return Nothing
     else Just <$> UM.unsafeRead v h
 {-# INLINE mqTop #-}
-{-# SPECIALIZE mqTop :: UM.Unbox a => MutableQueue (ST s) a -> ST s (Maybe a) #-}
-{-# SPECIALIZE mqTop :: UM.Unbox a => MutableQueue IO a -> IO (Maybe a) #-}
 
 mqClear :: PrimMonad m => MutableQueue m a -> m ()
 mqClear MutableQueue{..} = do
   writeMutVar mqHead 0
   writeMutVar mqTail 0
 {-# INLINE mqClear #-}
-{-# SPECIALIZE mqClear :: MutableQueue (ST s) a -> ST s () #-}
-{-# SPECIALIZE mqClear :: MutableQueue IO a -> IO () #-}
+
+mqFreeze :: (PrimMonad m, UM.Unbox a) => MutableQueue m a -> m (U.Vector a)
+mqFreeze MutableQueue{..} = do
+  v <- readMutVar mqVect
+  !t <- readMutVar mqTail
+  U.freeze $ UM.unsafeTake t v
+
+mqUnsafeFreeze :: (PrimMonad m, UM.Unbox a) => MutableQueue m a -> m (U.Vector a)
+mqUnsafeFreeze MutableQueue{..} = do
+  v <- readMutVar mqVect
+  !t <- readMutVar mqTail
+  U.unsafeFreeze $ UM.unsafeTake t v

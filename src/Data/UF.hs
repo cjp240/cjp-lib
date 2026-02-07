@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.UF where
-import Control.Monad.ST
+import Control.Monad
 import Control.Monad.Primitive
 import Data.Ix
 import Data.Primitive.MutVar
@@ -32,8 +32,6 @@ ufRoot UnionFind{..} !x = do
   !ir <- _ufRoot ufParent ix
   return $! ufVs U.! ir
 {-# INLINE ufRoot #-}
-{-# SPECIALIZE ufRoot :: (Ix v, U.Unbox v) => UnionFind (ST s) v -> v -> ST s v #-}
-{-# SPECIALIZE ufRoot :: (Ix v, U.Unbox v) => UnionFind IO v -> v -> IO v #-}
 
 _ufRoot :: PrimMonad m => UM.MVector (PrimState m) Int -> Int -> m Int
 _ufRoot !parent !ix = do
@@ -44,8 +42,6 @@ _ufRoot !parent !ix = do
     UM.unsafeWrite parent ix root
     return root
 {-# INLINE _ufRoot #-}
-{-# SPECIALIZE _ufRoot :: UM.MVector s Int -> Int -> ST s Int #-}
-{-# SPECIALIZE _ufRoot :: UM.MVector RealWorld Int -> Int -> IO Int #-}
 
 ufUnite :: (PrimMonad m, Ix v, UM.Unbox v) => UnionFind m v -> v -> v -> m v
 ufUnite UnionFind{..} !x !y = do
@@ -74,23 +70,15 @@ ufUnite UnionFind{..} !x !y = do
     UM.unsafeModify ufNE succ irx
     return $! ufVs U.! irx
 {-# INLINE ufUnite #-}
-{-# SPECIALIZE ufUnite :: (Ix v, UM.Unbox v) => UnionFind (ST s) v -> v -> v -> ST s v #-}
-{-# SPECIALIZE ufUnite :: (Ix v, UM.Unbox v) => UnionFind IO v -> v -> v -> IO v #-}
 
 ufUnite_ :: (PrimMonad m, Ix v, UM.Unbox v) => UnionFind m v -> v -> v -> m ()
-ufUnite_ !uf !x !y = do
-  _ <- ufUnite uf x y
-  return ()
+ufUnite_ !uf !x !y = void $ ufUnite uf x y
 {-# INLINE ufUnite_ #-}
-{-# SPECIALIZE ufUnite_ :: (Ix v, UM.Unbox v) => UnionFind (ST s) v -> v -> v -> ST s () #-}
-{-# SPECIALIZE ufUnite_ :: (Ix v, UM.Unbox v) => UnionFind IO v -> v -> v -> IO () #-}
 
 ufIsSame :: (PrimMonad m, Ix v) => UnionFind m v -> v -> v -> m Bool
 ufIsSame UnionFind{..} !x !y = 
   (==) <$> _ufRoot ufParent (index ufBnd x) <*> _ufRoot ufParent (index ufBnd y)
 {-# INLINE ufIsSame #-}
-{-# SPECIALIZE ufIsSame :: Ix v => UnionFind (ST s) v -> v -> v -> ST s Bool #-}
-{-# SPECIALIZE ufIsSame :: Ix v => UnionFind IO v -> v -> v -> IO Bool #-}
 
 ufSize :: (PrimMonad m, Ix v) => UnionFind m v -> v -> m Int
 ufSize UnionFind{..} !x = do

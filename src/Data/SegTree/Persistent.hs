@@ -2,7 +2,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.SegTree.Persistent where
 import Control.Monad
-import Control.Monad.ST
 import Control.Monad.Primitive
 import Data.Bits
 import Data.Primitive.MutVar
@@ -28,7 +27,6 @@ segpNew !n !op !sUnit = do
   rootRef <- newMutVar roots
   gen <- newMutVar 0
   return $! SegTreePersistent n op sUnit rootRef gen
-{-# INLINABLE segpNew #-}
 
 segpFromVect :: (PrimMonad m, UM.Unbox a) => (a -> a -> a) -> a -> U.Vector a -> m (SegTreePersistent m a)
 segpFromVect !op !sUnit !v
@@ -53,7 +51,6 @@ segpFromVect !op !sUnit !v
   rootRef <- newMutVar roots
   gen <- newMutVar 0
   return $! SegTreePersistent n op sUnit rootRef gen
-{-# INLINABLE segpFromVect #-}
 
 segpFromList :: (PrimMonad m, UM.Unbox a) => (a -> a -> a) -> a -> [a] -> m (SegTreePersistent m a)
 segpFromList !op !sUnit !xs = segpFromVect op sUnit $ U.fromList xs
@@ -71,12 +68,10 @@ segpRead SegTreePersistent{..} !g !i = do
       go (SegPBranch _ !lch !rch) !l !r = 
         let !mid = shiftR (l + r) 1
         in
-          if i < mid then go lch l mid 
-          else go rch mid r
+          if i < mid 
+            then go lch l mid 
+            else go rch mid r
   return $ go root 0 segpSize
-{-# INLINE segpRead #-}
-{-# SPECIALIZE segpRead :: SegTreePersistent (ST s) a -> Int -> Int -> ST s a #-}
-{-# SPECIALIZE segpRead :: SegTreePersistent IO a -> Int -> Int -> IO a #-}
 
 segpSet :: PrimMonad m => SegTreePersistent m a -> Int -> Int -> a -> m Int
 segpSet SegTreePersistent{..} !g !i !x = do
@@ -89,11 +84,12 @@ segpSet SegTreePersistent{..} !g !i !x = do
       !newGen = lastGen + 1
 
   roots' <- 
-    if newGen >= cap then do
-      newRoots <- VM.unsafeGrow roots cap
-      writeMutVar segpRoots newRoots
-      return newRoots
-    else return roots
+    if newGen >= cap 
+      then do
+        newRoots <- VM.unsafeGrow roots cap
+        writeMutVar segpRoots newRoots
+        return newRoots
+      else return roots
 
   !root <- VM.unsafeRead roots' g
   let !newRoot = _segpUpdateNode segpOp segpUnit i x root 0 segpSize
@@ -101,9 +97,6 @@ segpSet SegTreePersistent{..} !g !i !x = do
   VM.unsafeWrite roots' newGen newRoot
   writeMutVar segpGen newGen
   return newGen
-{-# INLINE segpSet #-}
-{-# SPECIALIZE segpSet :: SegTreePersistent (ST s) a -> Int -> Int -> a -> ST s Int #-}
-{-# SPECIALIZE segpSet :: SegTreePersistent IO a -> Int -> Int -> a -> IO Int #-}
 
 segpProd :: PrimMonad m => SegTreePersistent m a -> Int -> Int -> Int -> m a
 segpProd SegTreePersistent{..} !g !ql !qr = do
@@ -128,9 +121,6 @@ segpProd SegTreePersistent{..} !g !ql !qr = do
             in val
 
   return $! go root 0 segpSize
-{-# INLINE segpProd #-}
-{-# SPECIALIZE segpProd :: SegTreePersistent (ST s) a -> Int -> Int -> Int -> ST s a #-}
-{-# SPECIALIZE segpProd :: SegTreePersistent IO a -> Int -> Int -> Int -> IO a #-}
 
 segpGetGen :: PrimMonad m => SegTreePersistent m a -> m Int
 segpGetGen SegTreePersistent{..} = readMutVar segpGen
@@ -150,9 +140,10 @@ _segpUpdateNode !op !sUnit !i !val !node !l !r
           (!oldL, !oldR) = case node of
             SegPBranch _ !ln !rn -> (ln, rn)
             _ -> (SegPEmpty, SegPEmpty)
-          (!newL, !newR) = if i < mid
-            then (_segpUpdateNode op sUnit i val oldL l mid, oldR)
-            else (oldL, _segpUpdateNode op sUnit i val oldR mid r)
+          (!newL, !newR) = 
+            if i < mid
+              then (_segpUpdateNode op sUnit i val oldL l mid, oldR)
+              else (oldL, _segpUpdateNode op sUnit i val oldR mid r)
           !vL = _segpGetVal sUnit newL
           !vR = _segpGetVal sUnit newR
           !newV = op vL vR
