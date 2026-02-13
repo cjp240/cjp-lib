@@ -1,6 +1,6 @@
 module Common.Template where
 import Data.Foldable qualified as F
-import Data.Hashable qualified as Hashable
+import Data.Hashable (Hashable)
 import Data.HashMap.Strict qualified as HM
 import Data.IntMap.Strict qualified as IM
 import Data.List qualified as L
@@ -24,7 +24,7 @@ accumIntMap op def = F.foldl' f
     f m (k, v) = IM.alter (\x -> Just (op (fromMaybe def x) v)) k m
 {-# INLINE accumIntMap #-}
 
-accumHashMap :: (Foldable t, Hashable.Hashable k) => (a -> b -> a) -> a -> HM.HashMap k a -> t (k, b) -> HM.HashMap k a
+accumHashMap :: (Foldable t, Hashable k) => (a -> b -> a) -> a -> HM.HashMap k a -> t (k, b) -> HM.HashMap k a
 accumHashMap op def = F.foldl' f
   where
     f m (k, v) = HM.alter (\x -> Just (op (fromMaybe def x) v)) k m
