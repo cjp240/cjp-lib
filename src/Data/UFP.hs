@@ -1,101 +1,119 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BlockArguments #-}
 module Data.UFP where
-import Control.Monad
 import Control.Monad.Primitive
 import Data.Ix
+import Data.Primitive.MutVar
 import Data.Vector.Unboxed qualified as U
 import Data.Vector.Unboxed.Mutable qualified as UM
 
-import Data.UF
-
 data UnionFindPotential m v p = UnionFindPotential
-  { ufpUF :: !(UnionFind m v),
-    ufpDiff :: !(UM.MVector (PrimState m) p), -- V[v] - V[parent [v]]
-    ufpOp :: !(p -> p -> p),
-    ufpInv :: !(p -> p),
-    ufpUnit :: !p
+  { ufpBnd   :: !(v, v)
+  , ufpVs    :: !(U.Vector v)
+  , ufpParent :: !(UM.MVector (PrimState m) Int)
+  , ufpDiff   :: !(UM.MVector (PrimState m) p) -- V[v] - V[parent[v]]
+  , ufpNV     :: !(UM.MVector (PrimState m) Int)
+  , ufpNE     :: !(UM.MVector (PrimState m) Int)
+  , ufpNC     :: !(MutVar (PrimState m) Int)
+  , ufpOp     :: !(p -> p -> p)
+  , ufpInv    :: !(p -> p)
+  , ufpUnit   :: !p
   }
 
-ufpNew :: (PrimMonad m, UM.Unbox v, UM.Unbox p, Ix v) => (v, v) -> (p -> p -> p) -> (p -> p) -> p -> m (UnionFindPotential m v p)
+ufpNew :: (PrimMonad m, Ix v, UM.Unbox v, UM.Unbox p) 
+       => (v, v) -> (p -> p -> p) -> (p -> p) -> p -> m (UnionFindPotential m v p)
 ufpNew !bnd !op !inv !unit = do
-  uf <- ufNew bnd
   let !n = rangeSize bnd
-  diff <- UM.replicate n unit
-  return $ UnionFindPotential uf diff op inv unit
-
-ufpRoot :: (PrimMonad m, UM.Unbox p, U.Unbox v, Ix v) => UnionFindPotential m v p -> v -> m (v, p)
-ufpRoot ufp@UnionFindPotential{..} !x = do
-  let !ix = index (ufBnd ufpUF) x
-  (!ir, !p) <- _ufpRoot ufp ix
-  return (ufVs ufpUF U.! ir, p)
-{-# INLINE ufpRoot #-}
-
--- V[y] - V[x]
-ufpGetDiff :: (PrimMonad m, UM.Unbox p, Ix v) => UnionFindPotential m v p -> v -> v -> m (Maybe p)
-ufpGetDiff ufp@UnionFindPotential{..} !x !y = do
-  let !bnd = ufBnd ufpUF
-      !ix = index bnd x
-      !iy = index bnd y
-  (!irx, !px) <- _ufpRoot ufp ix
-  (!iry, !py) <- _ufpRoot ufp iy
-  if irx /= iry then return Nothing
-  else return $ Just $! ufpOp py $ ufpInv px
-{-# INLINE ufpGetDiff #-}
+      !vs = U.fromListN n $ range bnd
+  parent <- UM.replicate n (-1)
+  diff   <- UM.replicate n unit
+  nV     <- UM.replicate n 1
+  nE     <- UM.replicate n 0
+  nC     <- newMutVar n
+  return $ UnionFindPotential bnd vs parent diff nV nE nC op inv unit
 
 _ufpRoot :: (PrimMonad m, UM.Unbox p) => UnionFindPotential m v p -> Int -> m (Int, p)
 _ufpRoot ufp@UnionFindPotential{..} !ix = do
-  !p <- UM.unsafeRead (ufParent ufpUF) ix
-  if p == -1 then return (ix, ufpUnit)
-  else do
-    (!root, !diffRootP) <- _ufpRoot ufp p
-    !diffPV <- UM.unsafeRead ufpDiff ix
-    let !diffRootV = ufpOp diffRootP diffPV
-    UM.unsafeWrite (ufParent ufpUF) ix root
-    UM.unsafeWrite ufpDiff ix diffRootV
-    return (root, diffRootV)
+  !p <- UM.unsafeRead ufpParent ix
+  if p < 0
+    then return (ix, ufpUnit)
+    else do
+      (!root, !pPot) <- _ufpRoot ufp p
+      !vPot <- UM.unsafeRead ufpDiff ix
+      let !newPot = ufpOp pPot vPot
+      UM.unsafeWrite ufpParent ix root
+      UM.unsafeWrite ufpDiff ix newPot
+      return (root, newPot)
 {-# INLINE _ufpRoot #-}
 
--- V[y] - V[x] = w
-ufpUnite :: (PrimMonad m, UM.Unbox p, U.Unbox v, Ix v, Eq p) => UnionFindPotential m v p -> v -> v -> p -> m (Maybe v)
+-- V[y] - V[x] = w / V[y] = V[x] + w
+ufpUnite :: (PrimMonad m, UM.Unbox p, U.Unbox v, Ix v, Eq p) 
+         => UnionFindPotential m v p -> v -> v -> p -> m (Maybe v)
 ufpUnite ufp@UnionFindPotential{..} !x !y !w = do
-  let !bnd = ufBnd ufpUF
-      !ix = index bnd x
-      !iy = index bnd y
+  let !ix = index ufpBnd x
+      !iy = index ufpBnd y
   (!irx, !px) <- _ufpRoot ufp ix
   (!iry, !py) <- _ufpRoot ufp iy
-  let !diffRyRx = ufpOp w $ ufpOp px $ ufpInv py
 
   if irx /= iry then do
-    !r <- ufUnite ufpUF x y
-    let !ir = index bnd r
-    if ir == irx then 
-      UM.unsafeWrite ufpDiff iry $! ufpInv diffRyRx
-    else
-      UM.unsafeWrite ufpDiff irx diffRyRx
-    return $ Just r
+    !vx <- UM.unsafeRead ufpNV irx
+    !vy <- UM.unsafeRead ufpNV iry
+    !ex <- UM.unsafeRead ufpNE irx
+    !ey <- UM.unsafeRead ufpNE iry
+    modifyMutVar' ufpNC pred
+    
+    -- V[ry] - V[rx] = inv(py) + w + px
+    let !diffRyRx = ufpOp (ufpOp (ufpInv py) w) px
+
+    if vx > vy then do
+      UM.unsafeWrite ufpParent iry irx
+      UM.unsafeWrite ufpNV irx $! vx + vy
+      UM.unsafeWrite ufpNE irx $! ex + ey + 1
+      UM.unsafeWrite ufpDiff iry diffRyRx
+      return $ Just $! ufpVs U.! irx
+    else do
+      UM.unsafeWrite ufpParent irx iry
+      UM.unsafeWrite ufpNV iry $! vx + vy
+      UM.unsafeWrite ufpNE iry $! ex + ey + 1
+      UM.unsafeWrite ufpDiff irx (ufpInv diffRyRx)
+      return $ Just $! ufpVs U.! iry
   else do
-    if diffRyRx == ufpUnit then do
-      !r <- ufUnite ufpUF x y
-      return $ Just r
+    if ufpOp py (ufpInv px) == w then do
+      UM.unsafeModify ufpNE succ irx
+      return $ Just $! ufpVs U.! irx
     else return Nothing
 {-# INLINE ufpUnite #-}
 
-ufpUnite_ :: (PrimMonad m, UM.Unbox p, UM.Unbox v, Ix v, Eq p) => UnionFindPotential m v p -> v -> v -> p -> m ()
-ufpUnite_ !ufp !x !y !w = void $ ufpUnite ufp x y w
-{-# INLINE ufpUnite_ #-}
+-- V[y] - V[x]
+ufpGetDiff :: (PrimMonad m, UM.Unbox p, U.Unbox v, Ix v) 
+           => UnionFindPotential m v p -> v -> v -> m (Maybe p)
+ufpGetDiff ufp@UnionFindPotential{..} !x !y = do
+  let !ix = index ufpBnd x
+      !iy = index ufpBnd y
+  (!irx, !px) <- _ufpRoot ufp ix
+  (!iry, !py) <- _ufpRoot ufp iy
+  if irx /= iry then return Nothing
+  else return $ Just $! ufpOp py (ufpInv px)
+{-# INLINE ufpGetDiff #-}
 
-ufpIsSame :: (PrimMonad m, Ix v) => UnionFindPotential m v p -> v -> v -> m Bool
-ufpIsSame UnionFindPotential{..} !x !y = ufIsSame ufpUF x y
-{-# INLINE ufpIsSame #-}
+ufpRoot :: (PrimMonad m, UM.Unbox p, U.Unbox v, Ix v) => UnionFindPotential m v p -> v -> m v
+ufpRoot ufp@UnionFindPotential{..} !x = do
+  (!ir, _) <- _ufpRoot ufp (index ufpBnd x)
+  return $! ufpVs U.! ir
+{-# INLINE ufpRoot #-}
 
-ufpSize :: (PrimMonad m, Ix v) => UnionFindPotential m v p -> v -> m Int
-ufpSize UnionFindPotential{..} !x = ufSize ufpUF x
+ufpSize :: (PrimMonad m, Ix v, UM.Unbox p) => UnionFindPotential m v p -> v -> m Int
+ufpSize ufp@UnionFindPotential{..} !x = do
+  (!ir, _) <- _ufpRoot ufp (index ufpBnd x)
+  UM.unsafeRead ufpNV ir
 {-# INLINE ufpSize #-}
 
-ufpNumEdge :: (PrimMonad m, Ix v) => UnionFindPotential m v p -> v -> m Int
-ufpNumEdge UnionFindPotential{..} !x = ufNumEdge ufpUF x
+ufpNumEdge :: (PrimMonad m, Ix v, UM.Unbox p) => UnionFindPotential m v p -> v -> m Int
+ufpNumEdge ufp@UnionFindPotential{..} !x = do
+  (!ir, _) <- _ufpRoot ufp (index ufpBnd x)
+  UM.unsafeRead ufpNE ir
 {-# INLINE ufpNumEdge #-}
 
-ufpNumComponent :: PrimMonad m => UnionFindPotential m v p -> m Int
-ufpNumComponent UnionFindPotential{..} = ufNumComponent ufpUF
+ufpNumComponent :: (PrimMonad m) => UnionFindPotential m v p -> m Int
+ufpNumComponent UnionFindPotential{..} = readMutVar ufpNC
 {-# INLINE ufpNumComponent #-}
