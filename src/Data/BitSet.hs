@@ -2,7 +2,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Data.BitSet where
 import Control.Monad
-import Control.Monad.ST
 import Control.Monad.Primitive
 import Data.Bits
 import Data.Vector.Unboxed qualified as U

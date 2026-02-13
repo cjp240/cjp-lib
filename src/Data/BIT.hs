@@ -51,7 +51,7 @@ bitApply BIT{..} !i !x = loop (i + 1)
 {-# INLINE bitApply #-}
 
 bitProd :: (PrimMonad m, UM.Unbox a) => BIT m a -> Int -> m a
-bitProd BIT{..} !i = loop (i + 1) bitUnit
+bitProd BIT{..} !i = loop i bitUnit
   where
     loop !j !acc
       | j > 0 = do
