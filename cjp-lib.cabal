@@ -91,9 +91,12 @@ library
         Graph.BipartiteMatching
         Graph.BellmanFord
         Graph.BFS
+        Graph.Conn
+        Graph.Conn.LowLink
+        Graph.Conn.TwoECC
+        Graph.Conn.SCC
         Graph.CSR
         Graph.Dijkstra
-        Graph.SCC
         Graph.TopSort
         Graph.MaxFlow
         Graph.MinCostFlow

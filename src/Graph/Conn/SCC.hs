@@ -1,6 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
-module Graph.SCC where
+module Graph.Conn.SCC where
 import Control.Monad
 import Control.Monad.Extra
 import Control.Monad.ST

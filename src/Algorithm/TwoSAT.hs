@@ -3,7 +3,7 @@ module Algorithm.TwoSAT where
 import Data.Bits
 import Data.Vector.Unboxed qualified as U
 
-import Graph.SCC
+import Graph.Conn.SCC
 
 newtype SATLit = SATLit {unSATLit :: Int} deriving (Eq, Show)
 
