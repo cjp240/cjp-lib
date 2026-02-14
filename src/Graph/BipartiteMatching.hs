@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -5,7 +6,6 @@ module Graph.BipartiteMatching where
 import Control.Monad
 import Control.Monad.ST
 import Control.Monad.Primitive
-import Data.Primitive.MutVar
 import Data.Vector.Unboxed qualified as U
 import Data.Vector.Unboxed.Mutable qualified as UM
 
@@ -21,8 +21,8 @@ data BMGraph =
     bmOffset :: !(U.Vector Int)
   }
 
-buildGraphHK :: PrimMonad m => Int -> Int -> U.Vector (Int, Int) -> m BMGraph
-buildGraphHK sizeU sizeV edges = do
+bmBuild :: PrimMonad m => Int -> Int -> U.Vector (Int, Int) -> m BMGraph
+bmBuild sizeU sizeV edges = do
   let (!to, !offset) = csrBuild sizeU edges
   return $ BMGraph sizeU sizeV to offset
 
@@ -36,8 +36,7 @@ bmSolve BMGraph{..} = runST $ do
 
   let bfs = do
         UM.set dist (-1)
-        writeMutVar (mqHead que) 0
-        writeMutVar (mqTail que) 0
+        mqClear que
 
         forLoop 0 (== bmSizeL) succ $ \ !l -> do
           !r <- UM.unsafeRead pairL l
@@ -46,15 +45,14 @@ bmSolve BMGraph{..} = runST $ do
             mqPush que l
 
         let go !foundFreeR = do
-              !top <- mqPop que
-              case top of
+              mqPop que >>= \case
                 Nothing -> return foundFreeR
                 Just !l -> do
                   !dl <- UM.unsafeRead dist l
                   let !st = bmOffset U.! l
                       !en = bmOffset U.! (l + 1)
 
-                  newFound <- forLoopFold st (== en) succ False $ \ !found !i -> do
+                  newFound <- forLoopFold st (== en) succ foundFreeR $ \ !found !i -> do
                     let !r = bmTo U.! i
                     !nxtL <- UM.unsafeRead pairR r
                     if nxtL == -1 
@@ -78,19 +76,21 @@ bmSolve BMGraph{..} = runST $ do
             !en = bmOffset U.! (l + 1)
 
             go !i
-              | i == en = return False
+              | i == en = do
+                UM.unsafeWrite dist l (-1)
+                return False
               | otherwise = do
                   let !r = bmTo U.! i
                   !nxtL <- UM.unsafeRead pairR r
 
-                  !canStep <- 
+                  !isTarget <- 
                     if nxtL == -1 
                       then return True
                       else do
                         !dn <- UM.unsafeRead dist nxtL
                         return (dn == dl + 1)
 
-                  if canStep 
+                  if isTarget
                     then do
                       !res <- 
                         if nxtL == -1 
@@ -102,10 +102,10 @@ bmSolve BMGraph{..} = runST $ do
                           UM.unsafeWrite pairR r l
                           return True
                         else do
-                          UM.unsafeModify ptr succ l
+                          UM.unsafeWrite ptr l (i + 1 - st)
                           go (i + 1)
                     else do
-                      UM.unsafeModify ptr succ l
+                      UM.unsafeWrite ptr l (i + 1 - st)
                       go (i + 1)
         
         !currPtr <- UM.unsafeRead ptr l
@@ -119,10 +119,11 @@ bmSolve BMGraph{..} = runST $ do
             UM.set ptr 0
             !added <- forLoopFold 0 (== bmSizeL) succ 0 $ \ !cnt !l -> do
               !matchR <- UM.unsafeRead pairL l
-              if matchR == -1 
+              !d <- UM.unsafeRead dist l
+              if matchR == -1 && d == 0
                 then do
                   !res <- dfs l
-                  return $ cnt + if res then 1 else 0
+                  return $! cnt + if res then 1 else 0
                 else return cnt
 
             if added == 0 
