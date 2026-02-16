@@ -60,8 +60,8 @@ segSet st@SegTree{..} !p !x = do
     _segPull st parent
 {-# INLINE segSet #-}
 
-segModify :: (PrimMonad m, UM.Unbox a) => SegTree m a -> Int -> (a -> a) -> m ()
-segModify st@SegTree{..} !p !f = do
+segModify :: (PrimMonad m, UM.Unbox a) => SegTree m a -> (a -> a) -> Int -> m ()
+segModify st@SegTree{..} !f !p = do
   unless (0 <= p && p < segN) do error $ "segModify : index out of bounds" ++ show p
   let !p0 = p + segSize
   UM.unsafeModify segNode f p0

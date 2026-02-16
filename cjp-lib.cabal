@@ -98,6 +98,9 @@ library
         Graph.CSR
         Graph.Dijkstra
         Graph.TopSort
+        Graph.Tree.CartesianTree
+        Graph.Tree.EulerTour
+        Graph.Tree.HLD
         Graph.MaxFlow
         Graph.MinCostFlow
         Graph.WarshallFloyd
