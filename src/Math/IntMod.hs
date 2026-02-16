@@ -237,10 +237,6 @@ instance KnownNat n => SemiRing (IntMod n) where
   {-# INLINE rOne #-}
   {-# INLINE (<+>) #-}
   {-# INLINE (<.>) #-}
-  {-# SPECIALIZE instance SemiRing IntMod998 #-}
-  {-# SPECIALIZE instance SemiRing IntMod107 #-}
 instance KnownNat n => Ring (IntMod n) where
   rNegate = negate
   {-# INLINE rNegate #-}
-  {-# SPECIALIZE instance Ring IntMod998 #-}
-  {-# SPECIALIZE instance Ring IntMod107 #-}
