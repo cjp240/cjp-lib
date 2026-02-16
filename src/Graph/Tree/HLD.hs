@@ -110,40 +110,45 @@ hlDecomp !n !edges !root = runST $ do
     <*> U.unsafeFreeze subSize
     <*> U.unsafeFreeze i2v
 
-hldPathFold :: HLDData -> Int -> Int -> a -> (a -> (Bool, Bool, Int, Int) -> a) -> (a, a)
-hldPathFold HLDData{..} !u !v !initAcc !f =
+hldPathFold :: HLDData -> Int -> Int -> a -> (a -> a -> a) -> ((Bool, Bool, Int, Int) -> a) -> a
+hldPathFold HLDData{..} !u !v !mUnit !op !f =
   let go !currU !currV !accL !accR =
         let !hu = hldHead U.! currU
             !hv = hldHead U.! currV
         in 
           if hu == hv
-            then do
+            then
               let !pu = hldPos U.! currU
                   !pv = hldPos U.! currV
-              if pu <= pv
-                then
-                  let !accR' = f accR (True, True, pu, pv + 1)
-                  in (accL, accR')
-                else
-                  let !accL' = f accL (False, True, pv, pu + 1)
-                  in (accL', accR)
-          else
-            let !dhu = hldDepth U.! hu
-                !dhv = hldDepth U.! hv
-            in
-              if dhu >= dhv
-                then
-                  let !accL' = f accL (False, False, hldPos U.! hu, hldPos U.! currU + 1)
-                  in go (hldParent U.! hu) currV accL' accR
-                else
-                  let !accR' = f accR (True, False, hldPos U.! hv, hldPos U.! currV + 1)
-                  in go currU (hldParent U.! hv) accL accR'
+              in 
+                if pu <= pv
+                  then
+                    let !vR = f (True, True, pu, pv + 1)
+                        !accR' = op vR accR
+                    in op accL accR'
+                  else
+                    let !vL = f (False, True, pv, pu + 1)
+                        !accL' = op accL vL
+                    in op accL' accR
+            else
+              let !dhu = hldDepth U.! hu
+                  !dhv = hldDepth U.! hv
+              in
+                if dhu >= dhv
+                  then
+                    let !vL = f (False, False, hldPos U.! hu, hldPos U.! currU + 1)
+                        !accL' = op accL vL
+                    in go (hldParent U.! hu) currV accL' accR
+                  else
+                    let !vR = f (True, False, hldPos U.! hv, hldPos U.! currV + 1)
+                        !accR' = op vR accR 
+                    in go currU (hldParent U.! hv) accL accR'
 
-  in go u v initAcc initAcc
+  in go u v mUnit mUnit
 {-# INLINE hldPathFold #-}
 
-hldPathFoldM :: PrimMonad m => HLDData -> Int -> Int -> a -> (a -> (Bool, Bool, Int, Int) -> m a) -> m (a, a)
-hldPathFoldM HLDData{..} !u !v !initAcc !f = do
+hldPathFoldM :: PrimMonad m => HLDData -> Int -> Int -> a -> (a -> a -> a) -> ((Bool, Bool, Int, Int) -> m a) -> m a
+hldPathFoldM HLDData{..} !u !v !mUnit !op !f = do
   let go !currU !currV !accL !accR = do
         let !hu = hldHead U.! currU
             !hv = hldHead U.! currV
@@ -153,23 +158,27 @@ hldPathFoldM HLDData{..} !u !v !initAcc !f = do
                 !pv = hldPos U.! currV
             if pu <= pv
               then do
-                !accR' <- f accR (True, True, pu, pv + 1)
-                return (accL, accR')
+                !vR <- f (True, True, pu, pv + 1)
+                let !accR' = op vR accR
+                return $! op accL accR'
               else do
-                !accL' <- f accL (False, True, pv, pu + 1)
-                return (accL', accR)
+                !vL <- f (False, True, pv, pu + 1)
+                let !accL' = op accL vL
+                return $! op accL' accR
           else do
             let !dhu = hldDepth U.! hu
                 !dhv = hldDepth U.! hv
             if dhu >= dhv
               then do
-                !accL' <- f accL (False, False, hldPos U.! hu, hldPos U.! currU + 1)
+                !vL <- f (False, False, hldPos U.! hu, hldPos U.! currU + 1)
+                let !accL' = op accL vL
                 go (hldParent U.! hu) currV accL' accR
               else do
-                !accR' <- f accR (True, False, hldPos U.! hv, hldPos U.! currV + 1)
+                !vR <- f (True, False, hldPos U.! hv, hldPos U.! currV + 1)
+                let !accR' = op vR accR 
                 go currU (hldParent U.! hv) accL accR'
 
-  go u v initAcc initAcc
+  go u v mUnit mUnit
 {-# INLINE hldPathFoldM #-}
 
 hldSubtree :: HLDData -> Int -> (Int, Int)
